@@ -1,0 +1,210 @@
+/* GENERAL FORMATTING FOR ALL THE PAGES */
+/* GENERAL FORMATTING FOR ALL THE PAGES */
+/* GENERAL FORMATTING FOR ALL THE PAGES */
+/* Font Syle */
+* {
+    font-family: "Manrope", sans-serif;
+  }
+
+/* NAVBAR */
+.navbar {
+    opacity: 1;
+}
+
+/* Navbar Brand */
+.navbar-brand:link, .navbar-brand:active, .navbar-brand:visited {
+    font-size: 16px;
+    color: #A4A091;
+}
+.navbar-brand:hover {
+    color: #000;
+}
+
+/* Navbar Links */
+.nav-link:link, .nav-link:active, .nav-link:visited {
+    font-size: 16px;
+    color: #000;
+}
+
+.nav-link:hover {
+    color: #A4A091;
+    font-weight: 800;
+}
+
+/* MAIN TITLES */
+.h1 {
+    color: #A4A091;
+    font-weight:200;
+    font-size: 40px;
+    margin-bottom: 30px;
+}
+
+/* MAIN TITLES <b> CONTENTS */
+.h1 > b {
+    font-weight: 600;
+}
+
+/* Subtitles */
+.h2 {
+    font-weight: 200;
+    color: #000;
+    font-size: 35px;
+}
+
+/* Sub-Subtitles */
+.h3 {
+    font-size: 25px;
+    font-weight: 280;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Sub-sub-subtitles */
+.h4 {
+    font-size: 20px;
+    font-weight: 300;
+}
+
+/* Descriptions (smaller font) */
+.small-text {
+    font-weight: 100;
+    font-size: 15px;
+}
+
+/* Descriptions <b> contents */
+.small-text > b {
+    font-weight: 700;
+}
+
+/* NAVBAR BRAND */
+.height-for-image-new {
+    padding-bottom: 10px;
+    height: 300px;
+}
+
+.info-container {
+    margin-bottom: 20px;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.info-container > div {
+    border: 1px solid black;
+    background-color: #fafafa;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+@media (min-width:768px) and (max-width:1199px) {
+    /* GENERAL FORMATTING */
+    /* Title */
+    .h1 {
+        font-size: 5.4vw;
+    }
+
+    /* Subtitle */
+    .h2 {
+        font-size: 2.5em;
+    }
+
+    /* Sub-title */
+    .h3 {
+        font-size: 2em;
+    }
+
+    /* Sub-sub-subtitle */
+    .h4 {
+        font-size: 1.5em;
+    }
+
+    /* Description */
+    .small-text {
+        font-size: 1em;
+    }
+}
+
+@media (min-width:768px) and (max-width:991px) {
+    .height-for-image-new {
+        height: 400px;
+    }
+}
+
+@media (min-width:992px) {
+    .height-for-image-new {
+        height: 200px;
+    }
+}
+
+/* For XL and larger width devices */
+@media (min-width:1200px) {
+    /* GENERAL FORMATTING */
+    /* Main Title*/
+    .h1 {
+        font-size: 4em;
+    }
+
+    /* Subtitle */
+    .h2 {
+        font-size: 3.2em;
+    }
+
+    /* Sub-subtitle */
+    .h3 {
+        font-size: 2.4em;
+    }
+
+    /* Sub-sub-subtitle */
+    .h4 {
+        font-size: 1.8em;
+    }
+    
+    /* Description */
+    .small-text {
+        font-size: 1.2em;
+    } 
+}
+
+@media(max-width:576px) {
+    body {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+@media(min-width:576px) {
+    .info-container:first-child, .info-container:nth-child(3), .info-container:nth-child(5), .info-container:nth-child(7) {
+        padding-right: 10px;
+        padding-left: 0;
+    }
+    
+    .info-container:nth-child(2), .info-container:nth-child(4), .info-container:nth-child(6), .info-container:nth-child(8) {
+        padding-left: 10px;
+        padding-right: 0;
+    }
+}
+
+.news-container, .news-container:link, .news-container:visited, .news-container:active {
+    text-decoration:none;
+    color: #000;
+}
+
+.news-container:hover {
+    color: #A4A091;
+}
+
+#view_more_button_home:link, #view_more_button_home:active, #view_more_button_home {
+    background-color: #fff;
+    color: #A4A091;
+    font-weight: 600; 
+    border: 2px solid #A4A091; 
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 5px;
+}
+
+#view_more_button_home:hover {
+    background-color: #A4A091;
+    color: #fff;
+
+}
+
