@@ -42,7 +42,7 @@ def columnsTable(dataFrame, format):
     return grid
 
 # Predetermined Stocks for the Optimization
-purchaseRecords = pd.read_csv('assets/purchaseRecords.csv')
+purchaseRecords = pd.read_csv('src/assets/purchaseRecords.csv')
 purchaseRecords['date'] = pd.to_datetime(purchaseRecords['date']).dt.strftime('%Y-%m-%d')
 purchaseRecords['market'] = [exchange_names.get(yf.Ticker(i).info.get('exchange'), 'Unknown').split(' ')[-1][1:-1] for i in purchaseRecords['stock']]
 purchaseRecords.columns = ['Order ID', 'Date', 'Stock', 'Market', 'Purchase Qty (USD)', 'Echange Rates (MXN)', 'Stock Price (USD)', 'No Stocks']

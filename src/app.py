@@ -10,7 +10,7 @@ import optimizationModule as om
 data = om.portfolioActuals()
 
 def create_app():
-    app = Dash(__name__, use_pages=True, external_stylesheets=['/assets/style.css', dbc.themes.BOOTSTRAP])
+    app = Dash(__name__, use_pages=True, external_stylesheets=['assets/style.css', dbc.themes.BOOTSTRAP])
     
     # Define el HTML base con el navbar y el script para cerrar el offcanvas
     # Define el HTML base con el navbar y el script para cerrar el offcanvas

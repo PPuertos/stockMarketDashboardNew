@@ -10,7 +10,7 @@ import yfinance as yf
 dash.register_page(__name__, path='/page2', title='Optimization')
 
 # Predetermined Stocks for the Optimization
-portDf = pd.read_csv('assets/purchaseRecords.csv')
+portDf = pd.read_csv('src/assets/purchaseRecords.csv')
 
 # MAIN TITLE #
 main_title = html.Div("Portfolio Optimization", className='h1 text-center text-md-start')

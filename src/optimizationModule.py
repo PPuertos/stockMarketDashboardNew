@@ -459,7 +459,7 @@ def portfolioActuals():
     ''' Function to get all the data from your investments '''
     ''' Input: Nothing '''
     ''' Output: financial results and metrics for a better understanding of your portfolio health '''
-    purchaseRecords = pd.read_csv('assets/purchaseRecords.csv')
+    purchaseRecords = pd.read_csv('src/assets/purchaseRecords.csv')
     purchaseRecords.index = pd.to_datetime(purchaseRecords['date']).dt.strftime('%Y-%m-%d')
     purchaseRecords = purchaseRecords.drop(columns='date')
     
@@ -718,11 +718,15 @@ def treeMapAndPopularDf(popularList):
         # Market Volume (daily)
         volume = i['regularMarketVolume']
         # Market Cap
-        marketCap = i['marketCap']
+        try:
+            marketCap = i['marketCap']
+            marketCapList.append(marketCap)
+        except:
+            print(f"There is not market cap in {stockSymbol}")
+            marketCapList.append(0)
         
         stockPctChangeList.append(stockPctChange)
         stockSymbolList.append(stockSymbol)
-        marketCapList.append(marketCap)
         stockLongNameList.append(stockLongName)
         stockChangeList.append(stockChange)
         fiftyTwoWeekPctChangeList.append(fiftyTwoWeekPctChange)

@@ -2,15 +2,12 @@ from dash import Dash, html, dcc, callback
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import dash
-import optimizationModule as om
 import pandas as pd
-import optimizationModule as om
 import numpy as np
 import dash_bootstrap_components as dbc
 import dash
 import optimizationModule as om
 import pandas as pd
-import plotly.graph_objects as go
 from datetime import datetime as dt
 from yahooquery import Screener
 import random
@@ -18,7 +15,7 @@ import random
 dash.register_page(__name__, path='/', title='Home')
 
 # Purchase Records
-purchaseRecords = pd.read_csv('assets/purchaseRecords.csv')
+purchaseRecords = pd.read_csv('src/assets/purchaseRecords.csv')
 portfolioStocks = purchaseRecords.groupby(['stock']).agg({'qty_bought_usd':'sum'}).reset_index()
 portfolioWeights = pd.Series(data=[i/portfolioStocks['qty_bought_usd'].sum() for i in portfolioStocks['qty_bought_usd']], index=portfolioStocks['stock'])
 
