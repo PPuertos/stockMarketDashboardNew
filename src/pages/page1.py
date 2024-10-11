@@ -297,11 +297,6 @@ def market_portoflio_graph(selected_market, data, *args):
         # Stocks daily return rates without its market
         market_daily_r_rates = market_daily_r_rates.drop(columns=selected_market)
         
-        # Portfolio Volatiliy historically
-        ''' PORTFOLIO RISK MAL CALCULADO. PRIMERO SACAR RETORNOS ESPERADOS Y COVARIANZA DE STOCKS. FINALMENTE CALCULAR LA VOLATILIDAD DEL PORTAFOLIO 
-        MULTIPLICANTO LA TRASPUESTA DE LOS PESOS * COVARIANZA DE STOCKS * PESOS '''
-        portfolio_risk = market_daily_r_rates.sum(axis=1).std(ddof=1)
-        
     else:
         # Selecting Range (Portfolio Evolution in a determined period)
         data_range = pd.Series(data[selected_market]['behaviour']).iloc[-int(selected_timelapse[1:]):]
@@ -321,9 +316,25 @@ def market_portoflio_graph(selected_market, data, *args):
         market_rr = market_daily_r_rates[selected_market]
         # Stocks daily return rates without its markets
         market_daily_r_rates = market_daily_r_rates.drop(columns=selected_market)
-        
-        # Portfolio Volatility in a certain period
-        portfolio_risk = market_daily_r_rates.sum(axis=1).std(ddof=1)
+    
+    
+    # FOR PORTFOLIO RISK #
+    # FOR PORTFOLIO RISK #
+    # FOR PORTFOLIO RISK #
+    
+    # Investment by stock, from the selected market
+    stocksInvestments = pd.Series(data['investment_by_market'][selected_market])
+    # Total investment from the selected market
+    totalInvestment = stocksInvestments.sum()
+    # Portfolio Weights
+    stocksWeights = stocksInvestments/totalInvestment
+    # Portfolio mean returns and covariance matrix
+    meanRet, covMat = om.stocksStatistics(market_daily_r_rates)
+    # Number of weeks. We will convert the volatility
+    nWeeks = len(market_daily_r_rates)/5
+    # Portfolio volatility
+    portfolioV = om.portfolioStd(stocksWeights, meanRet, covMat, nWeeks)
+    
     
     # String Formatting
     # Format for returns
@@ -409,7 +420,10 @@ def market_portoflio_graph(selected_market, data, *args):
         market_behaviour.append(mkt_beh)
         actual_prices.append(act_price)
         
-    return figure, f"${portfolio_actual_worth:,.2f} USD", portfolio_return_rate, return_rate_style, portfolio_returns, returns_style, f"{data[selected_market]['longName']} Portfolio", f"{timelapse_dict[selected_timelapse]} Returns", f"${portfolio_total_inv:,.2f} USD", f"${period_inv:,.2f} USD", f"${-VaR_95*portfolio_total_inv:,.2f}", f"${-CVaR_95*portfolio_total_inv:,.2f}", f"{portfolio_risk*100:,.2f}%",f"{beta_alpha['alpha']*100:,.2f}%", f"{beta_alpha['beta']*100:,.2f}%", f"{data[selected_market]['longName']} Stocks", container_with_slider(market_stocks, stock_returns, stock_ret_rates, stock_behaviour, 'stocks'), container_with_slider(markets, actual_prices, market_ret_rates, market_behaviour, 'markets')
+    
+    subtitleFormat = lambda x: f"{x} Returns" if x != 'All Time' else f"{x} Returns (≈ {round(len(data[selected_market]['behaviour'])/5/4/12)} years)"
+        
+    return figure, f"${portfolio_actual_worth:,.2f} USD", portfolio_return_rate, return_rate_style, portfolio_returns, returns_style, f"{data[selected_market]['longName']} Portfolio", subtitleFormat(timelapse_dict[selected_timelapse]), f"${portfolio_total_inv:,.2f} USD", f"${period_inv:,.2f} USD", f"${-VaR_95*portfolio_total_inv:,.2f}", f"${-CVaR_95*portfolio_total_inv:,.2f}", f"{portfolioV*100:,.2f}%",f"{beta_alpha['alpha']*100:,.2f}%", f"{beta_alpha['beta']*100:,.2f}%", f"{data[selected_market]['longName']} Stocks", container_with_slider(market_stocks, stock_returns, stock_ret_rates, stock_behaviour, 'stocks'), container_with_slider(markets, actual_prices, market_ret_rates, market_behaviour, 'markets')
 
 '''
 OUTPUT

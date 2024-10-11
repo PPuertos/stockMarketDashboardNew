@@ -12,6 +12,7 @@ from datetime import datetime as dt
 from yahooquery import Screener
 import random
 
+# REGISTER PAGE
 dash.register_page(__name__, path='/', title='Home')
 
 # Purchase Records
@@ -21,7 +22,7 @@ portfolioWeights = pd.Series(data=[i/portfolioStocks['qty_bought_usd'].sum() for
 
 stocksList = [i for i in purchaseRecords['stock'].unique() if '.MX' not in i] + ['^GSPC']
 # Consulting news related to the stocks in the portfolio
-newsDict = om.NewsForAllActives(stocksList)
+newsDict = om.NewsForAllActives(stocksList, 1)
 screener = Screener()
 
 # Consulting screeners of todays popular stocks in the market
@@ -128,7 +129,7 @@ def newCreation(newData, activeName):
                 html.Div(f"Related to: {activeName}", className='h4 news-stock', style={'font-weight': '800'}),
                 html.Div(newHeadLine, className='h3 mb-2 news-headline text-start', style={'font-weight': '700', 'font-size': '24px'}),
                 html.Div(newSummary, className='small-text', style={'text-decoration': None, 'color': 'black'}),
-                html.Div(f"{newSource} • {newDate}", style={'font-size': '12px', 'margin-top': '10px', 'text-decoration': None, 'color': 'black'}, className='mt-auto')
+                html.Div(f"{newSource} • {newDate}", style={'font-size': '12px', 'margin-top': '10px', 'text-decoration': None, 'color': 'black'}, className='mt-auto text-end pt-3')
             ], 
                 width=12, xxl=9, xl=8, lg=7, 
                 class_name='d-flex flex-column justify-content-start'  # Alineación del texto al inicio de la columna

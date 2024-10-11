@@ -192,7 +192,7 @@
     color: #A4A091;
 }
 
-#view_more_button_home:link, #view_more_button_home:active, #view_more_button_home {
+#view_more_button_home:link, #view_more_button_home:active, #view_more_button_home, #view_more_button_analysis:link, #view_more_button_analysis:active, #view_more_button_analysis {
     background-color: #fff;
     color: #A4A091;
     font-weight: 600; 
@@ -202,9 +202,14 @@
     border-radius: 5px;
 }
 
-#view_more_button_home:hover {
+#view_more_button_home:hover, #view_more_button_analysis:hover {
     background-color: #A4A091;
     color: #fff;
 
 }
 
+#search-bar-box {
+    display: flex;
+    cursor: pointer;
+    border: none;
+}

@@ -8,11 +8,17 @@ import dash_ag_grid as dag
 import matplotlib.colors as mcolors
 import finnhub
 import exchangeRate as er
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+from yahooquery import Screener, Ticker
+import json
+import os
 
 def extractingData(stocks=list, startDate=None, closePrices=None):
-    ''' Function to extract data from yfinance library '''
-    ''' Input: stocks=[]; startDate=date; closePrices=bool '''
-    ''' Output: data (either close prices or all the data) '''
+    ''' Function to extract data from yfinance library
+        Input: stocks=[]; startDate=date; closePrices=bool
+        Output: data=pd.DataFrame (either close prices or all the data) 
+    '''
     if startDate == None:
         period = '2y'
         data = yf.download(stocks, period=period).bfill()
@@ -25,16 +31,18 @@ def extractingData(stocks=list, startDate=None, closePrices=None):
     return data
 
 def dailyReturnRates(stocksClosePrices):
-    ''' Function to calculate return rates '''
-    ''' Input: data frame with close prices of each stock '''
-    ''' Output: data frame with daily return rates for each stock '''
+    ''' Function to calculate return rates 
+        Input: stocksClosePrices=pd.Dataframe (Dateframe with close prices of each stock)
+        Output: dailyRR=pd.DataFrame (dataframe with daily return rates for each stock)
+    '''
     dailyRR = stocksClosePrices.pct_change().dropna()
     return dailyRR
 
 def expectedStocksReturns(marketReturns, stocksReturns, riskFreeRate):
-    ''' Function to calculate expected returns using CAPM model '''
-    ''' Input: Market and stocks return rates, risk free rate '''
-    ''' Output: Expected Returns of the stocks '''
+    ''' Function to calculate expected returns using CAPM model
+        Input: marketReturns=pd.Series, stocksReturns=pd.DataFrame, riskFreeRate=float (Market and stocks return rates, risk free rate) 
+        Output: expectedStocksReturns=pd.Series (Expected Returns of each stocks)
+    '''
     marketVar = marketReturns.var(ddof=1)
     covariances = np.array([np.cov(stocksReturns[i], marketReturns, ddof=1)[0][1] for i in stocksReturns])
     stockBetas = np.array([cov/marketVar for cov in covariances])
@@ -44,9 +52,10 @@ def expectedStocksReturns(marketReturns, stocksReturns, riskFreeRate):
     return expectedStocksReturns
 
 def stocksStatistics(stocksDailyReturnRates, riskFreeRate=None, marketReturns=None):
-    ''' Function to calculate the mean returns and covariance matrix for the stocks '''
-    ''' Input: data frame with with daily returns of each stock '''
-    ''' Output: list with the mean returns of each and covariance matrix '''
+    ''' Function to calculate the mean returns and covariance matrix for the stocks
+        Input: stocksDailyReturnRates=pd.DataFrame, riskFreeRate=float, marketReturns=float (data frame with with daily returns of each stock) 
+        Output: stocksMeanReturns=pd.Series, stocksCovMatrix=pd.DataFrame (list with the mean returns of each stock and covariance matrix) 
+    '''
     if riskFreeRate is not None:
         stocksMeanReturns = expectedStocksReturns(marketReturns,stocksDailyReturnRates, riskFreeRate)
     else:
@@ -55,9 +64,10 @@ def stocksStatistics(stocksDailyReturnRates, riskFreeRate=None, marketReturns=No
     return [stocksMeanReturns, stocksCovMatrix]
 
 def portfolioPerformance(stocksMeanReturns, covMatrix, weights, nWeeks):
-    ''' Function to calculate portfolio performance '''
-    ''' Input: pandas series with mean return rate of each stock, data frame with covariance matrix of the stocks, and weights of each stock '''
-    ''' Output: list with the portfolio returns, and the portfolio volatility '''
+    ''' Function to calculate portfolio performance 
+        Input: stocksMeanReturns=pd.Series, covMatrix=pd.DataFrame, weights=[], nWeeks=int (pandas series with mean return rate of each stock, data frame with covariance matrix of the stocks, and list with weights of each stock)
+        Output: portfolioReturns=float, portfolioStd=float (list with the portfolio returns, and the portfolio volatility)
+    '''
     weights = np.array(weights)
     
     portfolioReturns = np.sum(stocksMeanReturns * weights) * nWeeks*5
@@ -65,9 +75,10 @@ def portfolioPerformance(stocksMeanReturns, covMatrix, weights, nWeeks):
     return [portfolioReturns, portfolioStd]
 
 def negativeSR(weights, stocksMeanReturns, covMatrix, nWeeks, riskFreeRate):
-    ''' Objective function: calculates the sharp ratio of the portfolio '''
-    ''' Input: weights and mean return rates of each stock, covariance matrix of the stocks and risk free rate '''
-    ''' Output: Negative Risk Free Rate '''
+    ''' Objective function: calculates the sharp ratio of the portfolio
+        Input: weights=[], stocksMeanReturns=pd.Series, covMatrix=pd.DataFrame, nWeeks=int, riskFreeRate=float (weights and mean return rates of each stock, covariance matrix of the stocks, risk free rate, and number of weeks to convert volatility)
+        Output: Negative Risk Free Rate (float)
+    '''
     weights = np.array(weights)
     
     pReturns, pStd = portfolioPerformance(stocksMeanReturns, covMatrix, weights, nWeeks)
@@ -75,9 +86,10 @@ def negativeSR(weights, stocksMeanReturns, covMatrix, nWeeks, riskFreeRate):
     return -(pReturns - riskFreeRate)/pStd
 
 def maxSR(meanReturns, covMatrix, nWeeks, riskFreeRate, constraintSet = (0,1)):
-    ''' Function to minimize the negative sharp ratio function, which will lead to a maximization of the positive sharp ratio '''
-    ''' Inputs: mean return rates of each stock, covariance matrix of the stocks, risk free rate and constraint set '''
-    ''' Output: results of the minimization of the function '''
+    ''' Function to minimize the negative sharp ratio function, which will lead to a maximization of the positive sharp ratio 
+        Inputs: meanReturns=pd.Series, covMatrix=pd.DataFrame, nWeeks=int, riskFreeRate=float (mean return rates of each stock, covariance matrix of the stocks and risk free rate. Constraint set already established)
+        Output: result=float (results of the minimization of the function) 
+    '''
     numAssets = len(meanReturns)
     args = (meanReturns, covMatrix, nWeeks, riskFreeRate)
     constraints = ({'type':'eq', 'fun':lambda x: np.sum(x) - 1})
@@ -88,15 +100,17 @@ def maxSR(meanReturns, covMatrix, nWeeks, riskFreeRate, constraintSet = (0,1)):
     return result
 
 def portfolioStd(weights, stocksMeanReturns, covMatrix, nWeeks):
-    ''' Function to calculate the volatility of the portfolio '''
-    ''' Input: weights and mean return rate of each stock, covariance matrix of the stocks '''
-    ''' Output: Portfolio volatility '''
+    ''' Function to calculate the volatility of the portfolio
+        Input: weights=[], stocksMeanReturns=pd.Series, covMatrix=pd.DataFrame, nWeeks=int (weights and mean return rate of each stock, covariance matrix of the stocks)
+        Output: portfolioStd=float (Portfolio volatility)
+    '''
     return portfolioPerformance(stocksMeanReturns, covMatrix, weights, nWeeks)[1]
 
 def minStd(meanReturns, covMartix, nWeeks, constraintSet= (0,1)):
-    ''' Function to minimize the portfolioStd function '''
-    ''' Input: mean raturn rate of each stock, covariance matrix of the stocks, risk free rate and constraint set '''
-    ''' Output: results of the minimization of the function '''
+    ''' Function to minimize the portfolioStd function 
+        Input: meanReturns=pd.Series, covMartix=pd.DataFrame, nWeeks=int (mean raturn rate of each stock, covariance matrix of the stocks, risk free rate.Constraint set already established)
+        Output: result=float (results of the minimization of the function )
+    '''
     numAssets = len(meanReturns)
     args = (meanReturns, covMartix, nWeeks)
     constraints = ({'type':'eq', 'fun':lambda x:np.sum(x) - 1})
@@ -107,15 +121,17 @@ def minStd(meanReturns, covMartix, nWeeks, constraintSet= (0,1)):
     return result
 
 def portfolioReturns(weights, stocksMeanReturns, covMatrix, nWeeks):
-    ''' Function to alculate the returns of the portfolio '''
-    ''' Input: weights and mean return rate of each stock, covariance matrix of the stocks'''
-    ''' Output: Returns of the portfolio '''
+    ''' Function to alculate the returns of the portfolio 
+        Input: weights=[], stocksMeanReturns=pd.Series, covMatrix=pd.DataFrame, nWeeks=int (weights and mean return rate of each stock, covariance matrix of the stocks)
+        Output: portfolioReturns=float (Returns of the portfolio)
+     '''
     return portfolioPerformance(stocksMeanReturns, covMatrix, weights, nWeeks)[0]
 
 def efficientFrontierOpt(meanReturns, covMatrix, returnTarget, nWeeks, constraintSet = (0,1)):
-    ''' Function to minimize the volatility of the portfolio on a given return target '''
-    ''' Input: mean return rate of each stock, covariance matrix of the stocks, portofolio return target, constraint set '''
-    ''' Output: Minimization of volatility of the portfolio, given a return target '''
+    ''' Function to minimize the volatility of the portfolio on a given return target
+        Input: meanReturns=pd.Series, covMatrix=pd.DataFrame, returnTarget=float, nWeeks=int (mean return rate of each stock, covariance matrix of the stocks, portofolio return target. Constraint set already established)
+        Output:effOpt=float (Minimization of volatility of the portfolio, given a return target)
+    '''
     numAssets = len(meanReturns)
     args = (meanReturns, covMatrix, nWeeks)
     
@@ -129,9 +145,12 @@ def efficientFrontierOpt(meanReturns, covMatrix, returnTarget, nWeeks, constrain
     return effOpt
 
 def efficientFrontierData(stocks_mean_rr, stocks_cov_matrix, nWeeks, riskFreeRate=0):
-    ''' Function to calculate the efficient frontier '''
-    ''' Input: mean return rate of each stock, covariance matrix of each stock '''
-    ''' Output: max sharpe ratio, min volatility, efficient frontier '''
+    ''' Function to calculate the efficient frontier
+        Input: stocks_mean_rr=pd.Series, stocks_cov_matrix=pd.DataFrame, nWeeks=int, riskFreeRate=float (mean return rate of each stock, covariance matrix of each stock, number of weeks to convert the results. Risk free rate default as 0)
+        Output: maxSR_returns=float, maxSR_std=float, maxSR_allocation=pd.DataFrame, minVol_returns=float, minVol_std=float, minVol_allocation=pd.DataFrame, efficientResults=pd.DataFrame
+        
+        Output (Explained): returns, std and weights of maximization of sharpe ratio and minimization of portfolio volatility, and dataframe with 20 records, from minimum portfolio volatility, to maximum sharpe ratio.
+    '''
     # Max Sharpe Ratio Portfolio
     maxSR_Portfolio = maxSR(stocks_mean_rr, stocks_cov_matrix, nWeeks, riskFreeRate)
     maxSR_returns, maxSR_std = portfolioPerformance(stocks_mean_rr, stocks_cov_matrix, maxSR_Portfolio['x'], nWeeks)
@@ -160,9 +179,10 @@ def efficientFrontierData(stocks_mean_rr, stocks_cov_matrix, nWeeks, riskFreeRat
     return maxSR_returns, maxSR_std, maxSR_allocation, minVol_returns, minVol_std, minVol_allocation, efficientResults
 
 def montecarloSimulation(stocksMeanRR, stocksCovMatrix, mcSims, nWeeks):
-    ''' Function to simulate the portfolio results by random sampling the weight of the stocks '''
-    ''' Input: return rate of each stock, covariance matrix of the stocks and number of simulations '''
-    ''' Output: Dataframe with volatility, return, and stock weights of each simulation '''
+    ''' Function to simulate the portfolio results by random sampling the weight of the stocks
+        Input: stocksMeanRR=pd.Series, stocksCovMatrix=pd.DataFrame, mcSims=int, nWeeks=int (return rate of each stock, covariance matrix of the stocks, number of simulations and number of weeks to convert the results)
+        Output: mc_returns=pd.DataFrame (Dataframe with volatility, return, and stock weights of each simulation)
+    '''
     mc_results = []
     for _ in range(mcSims):
         weights = np.random.random(size=len(stocksMeanRR))
@@ -176,9 +196,10 @@ def montecarloSimulation(stocksMeanRR, stocksCovMatrix, mcSims, nWeeks):
 
 ### STYLING FUNCTION ###
 def get_color_from_value(values, colors, agGrid=True):
-    ''' Function to get a scale of colors '''
-    ''' Input: values to asign colors (list or pandas series), list or pandas series with the colors you want '''
-    ''' Output: List with the colors '''
+    ''' Function to get a scale of colors
+        Input: values=[], colors=[], agGrid=bool (list or pandas series with values to asign colors and another one with the main colors you want, and agGrid if you're using it for agGrid table
+        Output: List with the colors
+    '''
     min_value = values.min()
     max_value= values.max()
     
@@ -207,9 +228,11 @@ def get_color_from_value(values, colors, agGrid=True):
     return tuple(colors)
 
 def efficientFrontierPlot(efficientResults, maxSR_std, maxSR_returns, minVol_std, minVol_returns, mc_sim, nWeeks):
-    ''' Function to graph the efficient frontier '''
-    ''' Input: '''
-    ''' Output: '''
+    ''' Function to graph the efficient frontier
+        Input: efficientResults=pd.DataFrame, maxSR_std=float, maxSR_returns=float, minVol_std=float, minVol_returns=float, mc_sim=pd.DataFrame, nWeeks=int
+        Output: fig=go.Scatter (Scatter plot with line representing the trend)
+    '''
+    
     font_fam = ['Arial', 'Balto', 'Courier New', 'Droid Sans', 'Droid Serif', 'Droid Sans Mono', 'Gravitas One', 'Old Standard TT', 'Open Sans', 'Overpass', 'PT Sans Narrow', 'Raleway', 'Times New Roman']
 
     efficient_list = efficientResults['Volatility']
@@ -347,10 +370,15 @@ def efficientFrontierPlot(efficientResults, maxSR_std, maxSR_returns, minVol_std
     
     return fig
 
+### DESCONTINUADO Y PROXIMAMENTE SE ELIMINARÁ ###
+### DESCONTINUADO Y PROXIMAMENTE SE ELIMINARÁ ###
+### DESCONTINUADO Y PROXIMAMENTE SE ELIMINARÁ ###
+### DESCONTINUADO Y PROXIMAMENTE SE ELIMINARÁ ###
 def columnsTable(dataFrame):
-    ''' Function to display efficient frontier results '''
-    ''' Input: efficient frontier results '''
-    ''' Output: table with visual effects for a better understanding of the data '''
+    ''' Function to display efficient frontier results in a dag.AgGrid in a dash app
+        Input: dataFrame (efficient frontier results)
+        Output: grid=dag.AgGrid (table with visual effects for a better understanding of the data)
+    '''
     ['string', 'currency', 'number', 'percentage']
     valFormat = lambda x: "d3.format(',.2f')(params.value)" if x == 'Sharpe Ratio' else "d3.format(',.0%')(params.value)"
 
@@ -363,13 +391,19 @@ def columnsTable(dataFrame):
         columnSize='responsiveSizeToFit',
         defaultColDef={"sortable": True, "floatingFilter": True},
         className='ag-theme-balham',
+        style={'height':'auto'}
     )
     return grid
+#################################################
+#################################################
+#################################################
+#################################################
 
 def efficientFrontierTable(effRes):
-    ''' Function to display efficient frontier results '''
-    ''' Input: efficient frontier results '''
-    ''' Output: table with visual effects for a better understanding of the data '''
+    ''' Function to display efficient frontier results
+        Input: effRes=pd.DataFrame (efficient frontier results)
+        Output: grid=dag.AgGrid (table with visual effects for a better understanding of the data, ready to use in a dash app)
+    '''
     metricCols = list(effRes.iloc[:,-3:])
     stocksCols = [i.split('.')[0] + ' MX' if 'MX' in i else i for i in effRes.iloc[:,:-3]]
     
@@ -402,9 +436,14 @@ def efficientFrontierTable(effRes):
 #### FOR PORTFOLIO SECTION ####
 #### FOR PORTFOLIO SECTION ####
 def ols(X, Y, b0=True):
-    ''' Function to model a data sample, using Ordinary Least Squares method '''
-    ''' Input: X matrix (n * k+1), Y matrix (n * 1) '''
-    ''' Output: Portfolio b0, b1, ..., bk '''
+    ''' Function to model a data sample, using Ordinary Least Squares method
+        Input: X=pd.DataFrame, Y=pd.Series, b0=bool
+        
+        Input (Explained): X matrix (n * k+1) In this particular project the daily return rates of the stocks ("k" stocks, "n" records. It would have k+1 columns if you want the constant vector b0 to be true, which would mean that the function intersects in the origin)
+                            Y matrix (n * 1) Is the pandas series with the market daily return rates
+        
+        Output: alpha=float, beta=float (Alpha represents how above or below the portfolio is performing in comparison to the market. Beta how the portfolio behaves to market changes)
+    '''
     # If b0 == True, it means the model doesn't intersects with the origin of the model, so b0 value is going to be determined, and we add a column of ones to the X matrix
     if b0 == True:
         X =  np.column_stack([np.ones(X.shape[0]), X])
@@ -418,6 +457,10 @@ def ols(X, Y, b0=True):
     return {'alpha':bi[0], 'beta':bi[1]}
 
 def portfolioQueryResults(portfolioBehaviour, portfolioRecords):
+    ''' Function to calculate the total returns and return rate of your portfolio, given its historical behaviour, and its portfolio records to take into accountability tha investments made if there was in that timelapse
+        Input: portfolioBehaviour=pd.Series, portfolioRecords=pd.DataFrame (Portfolio value over certain period of time, portfolio purchase records)
+        Output: returns=float, returnRate=float (Portfolio returns and return rate in the given timelapse)
+    '''
     actualValue = portfolioBehaviour.loc[portfolioBehaviour.index.max()]
     investment = portfolioRecords.loc[portfolioRecords.index >= portfolioBehaviour.index.min(),'qty_bought_usd'].sum()
     initialValue = portfolioBehaviour.loc[portfolioBehaviour.index.min()] + investment
@@ -427,9 +470,10 @@ def portfolioQueryResults(portfolioBehaviour, portfolioRecords):
     return returns, returnRate
 
 def valueAtRisk(stocksReturnRates, stocksWeights, portfolioInvestment):
-    ''' Function to calculate value at risk and Conditional Value at Risk '''
-    ''' Input: Stocks daily return rates, stock weights, portfolio investment '''
-    ''' Output: Daily VaR and Conditional VaR, both with 95% confidence. '''
+    ''' Function to calculate value at risk and Conditional Value at Risk
+        Input: stocksReturnRates=pd.DataFrame, stocksWeights=pd.Series, portfolioInvestment=float (Stocks daily return rates, stock weights, portfolio investment)
+        Output: Daily VaR and Conditional VaR, both with 95% confidence.
+    '''
     portfolioReturnR = stocksReturnRates @ stocksWeights
     
     # Value at Risk 95% Confidence
@@ -441,6 +485,12 @@ def valueAtRisk(stocksReturnRates, stocksWeights, portfolioInvestment):
     return -VaR_95*portfolioInvestment, -CVaR_95*portfolioInvestment
 
 def riskScore(volatility):
+    ''' Function to calculate the risk score of our portfolio. Risk score evaluation
+        Input: volatility
+        Output: score=float, color=[]
+    
+        Risk score evaluation criteria based on eToro
+    '''
     # Risk Score Function
     risk_score = lambda x: 1 if x<=.005 else 2 if x<=.012 else 3 if x<=.02 else 4 if x<=.027 else 5 if x<=.039 else 6 if x<=.054 else 7 if x<=.077 else 8 if x<=.155 else 9 if x<=.233 else 10
     
@@ -456,9 +506,10 @@ def riskScore(volatility):
     return score, color
 
 def portfolioActuals():
-    ''' Function to get all the data from your investments '''
-    ''' Input: Nothing '''
-    ''' Output: financial results and metrics for a better understanding of your portfolio health '''
+    ''' Function to get all the data from your investments
+        Input: Nothing
+        Output: financial results and metrics for a better understanding of your portfolio health
+    '''
     purchaseRecords = pd.read_csv('src/assets/purchaseRecords.csv')
     purchaseRecords.index = pd.to_datetime(purchaseRecords['date']).dt.strftime('%Y-%m-%d')
     purchaseRecords = purchaseRecords.drop(columns='date')
@@ -572,7 +623,10 @@ def portfolioActuals():
     return portfolio_data
 
 def portfolioWorthPlot(data, fill_color, border_color):
-    ''' Function to '''
+    ''' Function that returns a line plot 
+        Input: data=pd.Series, fill_color=str, border_color=str
+        Output: figure=go.Scatter
+    '''
     tod = ['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
     font_fam = ['Arial', 'Balto', 'Courier New', 'Droid Sans', 'Droid Serif', 'Droid Sans Mono', 'Gravitas One', 'Old Standard TT', 'Open Sans', 'Overpass', 'PT Sans Narrow', 'Raleway', 'Times New Roman']
     
@@ -585,7 +639,7 @@ def portfolioWorthPlot(data, fill_color, border_color):
         y=y,
         mode='lines',
         line=dict(dash=tod[0], width=2),
-        customdata=np.stack([data.pct_change().dropna()], axis=1),
+        customdata=np.stack([pd.concat([pd.Series([0]), data.pct_change().dropna()])], axis=1),
         hoverinfo=None,
         hoverlabel=dict(
             bgcolor="rgba(230,230,230,.8)",  
@@ -621,6 +675,10 @@ def portfolioWorthPlot(data, fill_color, border_color):
 
 # Función para generar tonos variando la luminosidad
 def generate_shades(color, n):
+    ''' Function to generate different colors given a color, and a number, to return different scales of color of that main color
+        Input: color=str, n=int
+        Output: shades=[]
+    '''
     color_rgb = mcolors.hex2color(color)  # Convertir color a RGB
     shades = []
     
@@ -632,6 +690,10 @@ def generate_shades(color, n):
     return shades
 
 def investmentPieChart(investments, palette):
+    ''' Function to make a pie chart
+        Input: investments=pd, palette=[]
+        Output: investmentPie=go.Pie
+    '''
     ### INVESTMENT PIE CHART ###
     ### INVESTMENT PIE CHART ###
     ### INVESTMENT PIE CHART ###
@@ -663,6 +725,12 @@ def investmentPieChart(investments, palette):
     return investmentPie
 
 def returnsBarChart(tableIncomes, time):
+    ''' Function to make a returns bar chart of the portfolio
+        Input: tableIncomes=pd.DataFrame, time=int
+        Output: plot=go.Bar
+        
+        More Info: Its for dynamic dashboards, you use the function every time the user selects a new timelapse
+    '''
     tableIncomes['returns'] = tableIncomes['behaviour'].diff()
 
     tableIncomes['date'] = pd.to_datetime(tableIncomes['date'])
@@ -694,6 +762,11 @@ def returnsBarChart(tableIncomes, time):
     return plot
 
 def treeMapAndPopularDf(popularList):
+    ''' Function to create a Heat map and a dataframe of the trending stocks 
+        Input: popularList=[] (List of trending stocks with financial info)
+        Output: fig=go.Treemap, dataframe=pd.DataFrame (Heatmap of the given tending tickers type, and the dataframe with financial information)
+    '''
+    
     font_fam = ['Arial', 'Balto', 'Courier New', 'Droid Sans', 'Droid Serif', 'Droid Sans Mono', 'Gravitas One', 'Old Standard TT', 'Open Sans', 'Overpass', 'PT Sans Narrow', 'Raleway', 'Times New Roman']
 
     stockSymbolList = []
@@ -816,6 +889,10 @@ def treeMapAndPopularDf(popularList):
     return fig, dataframe
 
 def importNews(stock, timelapse):
+    ''' Function to import news
+        Input: stock=str, timelapse=int (stock symbol and timelapse of news you want)
+        Output: A dictionary with the news of that stock in the indicated timelapse
+    '''
     today = dt.today()
     startDate = today - pd.Timedelta(days=timelapse)
     # Set up the client
@@ -826,8 +903,361 @@ def importNews(stock, timelapse):
     news = finnhub_client.company_news(stock, _from=startDate.strftime('%Y-%m-%d'), to=today.strftime('%Y-%m-%d'))
     return news
 
-def NewsForAllActives(allActives):
+def NewsForAllActives(allActives, timelapse):
+    ''' Function to import news for a given stocks/actives list
+        Input: allActives=[], timelapse=int
+        Output: newsDict={}
+        
+        Output (Explained): The dictionary contains news by stock/active, the news are in a list format
+    '''
     newsDict = {}
     for i in allActives:
-        newsDict[i] = importNews(i, 7)
+        newsDict[i] = importNews(i, timelapse)
     return newsDict
+
+def newCreation(newData, activeName):
+    ''' Function to create a "New" container to use in a dash app
+        Input: newData={}, activeName=str (Data of the new you want to display and the long name or short name of the stock related to the new)
+        Output: Children which represents the new, and its ready to use in dash
+    '''
+    today = dt.today()
+    publishDateFunction = lambda x: f"{(today - x).total_seconds()/3600:.0f} hours ago" if (today - x).total_seconds()/3600 <= 24 else ("yesterday" if (today - x).total_seconds()/(3600*24) < 2 else (f"{(today - x).total_seconds()/(3600*24):.0f} days ago" if (today - x).total_seconds()/(3600*24) < 7 else x.strftime('%Y-%m-%d')))
+    newDate = dt.fromtimestamp(newData['datetime'])
+    newDate = publishDateFunction(newDate)
+    newHeadLine = newData['headline']
+    newImage = newData['image']
+    newSource = newData['source']
+    newSummary = newData['summary']
+    newUrl = newData['url']
+    
+    new = html.Div([
+        dbc.Row([
+            # Columna de la imagen
+            dbc.Col(
+                html.Div(
+                    html.Img(src=newImage, style={'width': '100%', 'border-radius': '10px', 'height': '100%', 'object-fit': 'cover'}),
+                    style={'width': '100%', 'overflow': 'hidden'},
+                    className='height-for-image-new d-flex justify-content-center align-items-center p-0 mb-3 mb-lg-0'  # Centra la imagen verticalmente
+                ), 
+                width=12, xxl=3, xl=4, lg=5, 
+                className='d-flex align-items-center'  # Alineación vertical de la columna de imagen
+            ),
+            # Columna de los textos
+            dbc.Col([
+                html.Div(f"Related to: {activeName}", className='h4 news-stock', style={'font-weight': '800'}),
+                html.Div(newHeadLine, className='h3 mb-2 news-headline text-start', style={'font-weight': '700', 'font-size': '24px'}),
+                html.Div(newSummary, className='small-text', style={'text-decoration': None, 'color': 'black', 'overflow': 'hidden', 'display': '-webkit-box', 'WebkitBoxOrient': 'vertical', 'WebkitLineClamp': '3'}),
+                html.Div(f"{newSource} • {newDate}", style={'font-size': '12px', 'margin-top': '10px', 'text-decoration': None, 'color': 'black'}, className='mt-auto text-end')
+            ], 
+                width=12, xxl=9, xl=8, lg=7, 
+                class_name='d-flex flex-column justify-content-start'  # Alineación del texto al inicio de la columna
+            )
+        ], 
+        className='align-items-stretch'  # Alinea las columnas según la altura de la más alta
+    )], style={'padding': '10px', 'border-radius': '12px', 'border': '1px solid black', 'background-color':'#fff'}, className='mb-4')
+
+    new = html.A(new, href=newUrl, target="_blank", className='news-container')
+
+    return new
+
+def generalTableFormat(dataFrame, columnTypeList):
+    ''' Function to make a grid
+        Input: dataframe and a list with the column type in the order of the dataframe columns
+        Output: Grid to use in Dash app
+        
+        available formats = ['str', 'int', 'percentage', 'percentageBy100', 'float']
+        
+        precentageBy100: Is when you have your percentage value not multiplied by 100 yet
+        percentage: When you already have your percentage multiplied by 100
+    '''
+    
+    valFormat = lambda x: "d3.format(',.2f')(params.value)" if x == 'float' else "d3.format(',.0%')(params.value)"
+    convertir = lambda x: f"{x / 1_000_000_000_000_000:.1f}Q" if x >= 1_000_000_000_000_000 else \
+        f"{x / 1_000_000_000_000:.1f}T" if x >= 1_000_000_000_000 else \
+        f"{x / 1_000_000_000:.1f}B" if x >= 1_000_000_000 else \
+        f"{x / 1_000_000:.1f}M" if x >= 1_000_000 else \
+        f"{x / 1_000:.1f}k" if x >= 1_000 else \
+                     str(x)
+
+    columnDefs = []
+    for col, coltype in zip(dataFrame, columnTypeList):
+        if coltype in ['str', 'int', 'percentage']:
+            if coltype == 'percentage':
+                dataFrame[col] = [f"{round(i)}%" for i in dataFrame[col]]
+            elif coltype == 'int':
+                dataFrame[col] = [convertir(i) for i in dataFrame[col]]
+            columnDefs.append({'field':col, 'headerName':col, "filter": "agSetColumnFilter"})
+        elif coltype in ['percentageBy100', 'float']:
+            columnDefs.append({'field':col, 'headerName':col, 'valueFormatter':{"function": valFormat(coltype)}, 'width':'auto', "filter": "agSetColumnFilter"})
+    
+    grid = dag.AgGrid(
+        id="efficientFrontierDataResults",
+        rowData=dataFrame.to_dict('records'),
+        columnDefs=columnDefs,
+        columnSize="autoSize",
+        columnSizeOptions={'skipHeader':False},
+        defaultColDef={"sortable": True},
+        className='ag-theme-balham',
+        style={'width': '100%', 'height':'100%'}
+    )
+    return grid
+
+def create_or_overwrite_json(filename, data):
+    """Crea un archivo JSON nuevo o lo reescribe si ya existe."""
+    with open(filename, 'w') as file:
+        json.dump(data, file, indent=2)
+    print(f"Archivo '{filename}' creado o reescrito con éxito.")
+
+def read_json(filename):
+    """Lee un archivo JSON si existe, de lo contrario imprime un mensaje."""
+    if os.path.exists(filename):
+        with open(filename, 'r') as file:
+            data = json.load(file)
+        return data
+    else:
+        return None
+
+def recomendationSystemNews(symbols):
+    ''' Function that returns the stocks from your given symbols, that are related with the portfolio stocks sectors 
+        Input: symbols=[] (I usually input the symbols of the trending tickers)
+        Output: newData={}, choicesLongNames={}
+        
+        Output (Explained): newData is the dictionary with news of each stock, in one day, and choicesLongNames is another dictionary, the keys are the stocks symbols and the values are the long name of the stock
+    '''
+    
+    filename = "src/assets/sectorByStock.json"
+    # Leer o crear el archivo
+    sectoresDict = read_json(filename)
+
+    # portfolio unique stocks
+    preferenceStocks = pd.Series([i.split('.')[0] for i in pd.read_csv('src/assets/purchaseRecords.csv')['stock']]).unique().tolist()
+    # Dataframe with info of all stocks in USA (We will use for long names)
+    allStocksDF = pd.read_csv('src/assets/stocks_list.csv')
+    
+    # Preference stocks combined with trending stocks, unique values
+    stocksList = pd.Series(symbols + preferenceStocks).unique()
+
+    if sectoresDict == None:
+        print("Noticias de Stocks: No existe archivo")
+        # Crear un objeto `Ticker` con todos los símbolos
+        tickers = Ticker(stocksList)
+        
+        # Now we have all our stocks sectors
+        sectores = {symbol: data.get("sector", "Sector no disponible") for symbol, data in tickers.asset_profile.items()}
+        
+        # Sectors from portfolio tickers
+        preferenceSectors = [sectores[sym] for sym in preferenceStocks]
+        
+        # Stocks with any of the sectors of our portfolio
+        stocksFiltrados = [i for i in sectores if sectores[i] in pd.Series(preferenceSectors).unique()]
+        randomChoicesNews = pd.Series(stocksFiltrados).sample(5)
+        
+        create_or_overwrite_json(filename, sectores)
+    else:
+
+        # Revisamos si hay algun stock nuevo para agregar al diccionario
+        pendingStocks = [i for i in stocksList if not sectoresDict[i]]
+        
+        if len(pendingStocks) > 0:
+            print("Noticias de Stocks: Stocks nuevos de los cuales no había información, actualizando...")
+            tickers = Ticker(pendingStocks)
+            
+            for symbol, data in tickers.asset_profile.items():
+                sectoresDict[symbol] = data
+            
+            create_or_overwrite_json(filename, sectoresDict)
+        else:
+            print("Noticias de Stocks: Información Actualizada")
+        
+        preferenceSectors = [sectoresDict[sym] for sym in preferenceStocks]
+        
+        stocksFiltrados = [i for i in sectoresDict if sectoresDict[i] in pd.Series(preferenceSectors).unique()]
+        randomChoicesNews = pd.Series(stocksFiltrados).sample(5)
+        
+
+    choicesLongNames = {i:allStocksDF.loc[allStocksDF['symbol'] == i,'name'].reset_index(drop=True)[0] if i in allStocksDF['symbol'].tolist() else yf.Ticker(i).info.get("longName") for i in randomChoicesNews}
+    newData = NewsForAllActives(randomChoicesNews, 1)
+    
+    return newData, choicesLongNames
+
+def mini_line_plot(serie, color):
+    ''' Function that makes a mini line plot given a pandas serie and a color
+        Input: serie=pd.Series, color=str
+        Output: fig=go.Scatter
+    '''
+    # Creamos el gráfico de línea
+    fig = go.Figure(go.Scatter(
+        x=serie.index,
+        y=serie.values,
+        mode='lines',
+        line=dict(color=color, width=2)
+    ))
+
+    # Ajustamos el layout para eliminar los ejes, cuadrículas y hacer el fondo transparente
+    fig.update_layout(
+        margin=dict(t=0, b=0, l=0, r=0),  # Márgenes reducidos
+        showlegend=False,
+        hovermode=False,
+        xaxis=dict(showgrid=False, zeroline=False, visible=False),  # Eje x oculto
+        yaxis=dict(showgrid=False, zeroline=False, visible=False),  # Eje y oculto
+        plot_bgcolor='rgba(0, 0, 0, 0)',  # Fondo del gráfico transparente
+        paper_bgcolor='rgba(0, 0, 0, 0)',  # Fondo de la figura transparente
+    )
+    
+    return fig
+
+def container_with_slider(portfolio_stocks=list, stock_returns=list, stock_return_rates=list, stock_behaviour=pd.Series(), asset_type=str):
+    ''' Function that makes a slider with containers of stocks with financial info
+        Input: portfolio_stocks=list, stock_returns=list, stock_return_rates=list, stock_behaviour=pd.Series(), asset_type=str
+        Output: Slider ready to use in a dash app
+        
+        Input (Explained): A list with the stocks, list with the sum of stock returns and return rate of each stock, list of pandas series with the behaviour of each stock, asset_type to determine an output.
+        
+        asset_type available: ['stocks', 'markets', 'mostActive', 'dayGainers'] PD: stocks returns "Returns" and the other values Price
+    '''
+    config2 = {
+    'staticPlot': True,  # Hace que el gráfico sea estático
+    'displayModeBar': False,  # Oculta la barra de herramientas
+    'scrollZoom': False,  # Desactiva el zoom con la rueda del mouse
+    'editable': True,  # Desactiva la edición de los gráficos
+    }
+    
+    stock_boxes = []
+    
+    rate_style_colors = lambda returns: 'rgba(72, 200, 0, 1)' if returns > 0 else 'rgba(255, 0, 0, 1)'
+    format_returns = lambda returns: f"${returns:,.2f}" if returns > 0 else f"-${-returns:,.2f}"
+    format_return_rate = lambda returns: f"+{returns*100:,.2f}%" if returns > 0 else f"-{-returns*100:,.2f}%"
+    prueba = lambda asset_type: 'Returns' if asset_type == 'stocks' else ('Price' if asset_type == 'markets' else 'Price' if asset_type=='mostActive' or asset_type=='dayGainers' else 'NaN')
+    
+    
+    for i, s_ret, s_ret_rate, behav in zip(portfolio_stocks, stock_returns, stock_return_rates, stock_behaviour):
+        s_ret_formatted = format_returns(s_ret)
+        s_ret_rate_form = format_return_rate(s_ret_rate)
+        rate_color = rate_style_colors(s_ret_rate)
+        plot = mini_line_plot(behav, rate_color)
+        
+        stock_boxes.append(
+            dbc.Row([
+                dcc.Link([
+                    html.Button([
+                        dbc.Row([
+                            # Stock Title
+                            dbc.Col(html.Div(i, style={'font-size':'30px', 'font-weight':'200'}, className='text-start'), width=7),
+                            # Return Rate on Portfolio
+                            dbc.Col(html.Div(s_ret_rate_form, style={'font-size':'20px', 'font-weight':'300', 'color':rate_color, 'text-align':'end'}), width=5),
+                            # Returns on Portfolio
+                            dbc.Col([html.Div(prueba(asset_type), style={'font-size':'20px', 'font-weight':'400'}, className='text-start'), html.Div(s_ret_formatted, className='text-start', style={'font-size':'25px','font-weight':'400px'})], width=6),
+                            # Graph
+                            dbc.Col(dcc.Graph(figure=plot, config=config2, style={'width': '100%', 'height': '80px'}),width=6)
+                        ])
+                    ], style={'border':'none', 'padding':0, 'margin':0, 'background-color':'transparent'}, id={'type': 'stock-button', 'index': f'{i}-{asset_type}'}, n_clicks=0) 
+                ], href=f"https://finance.yahoo.com/quote/{i}/", target="_blank", style={'padding':'10px'})
+            ], style={'width':'20em', 'border-radius':'10px', 'border':'1px solid black', 'background':'white','flex':'0 0 auto', 'margin-right':'30px'}, class_name='my-auto plot-container')
+
+                                    )
+    
+    sliderReady = html.Div(children=stock_boxes, style={'background':'#fafafa', 'padding':'40px 0 40px 30px', 'border-radius':'12px', 'border':'1px solid black','display':'flex', 'overflow-x':'auto','white-space': 'nowrap'})
+    return sliderReady
+
+def tickersCalcs(closePrices):
+    ''' Function that calculates financial metrics given a dataframe of close prices of stocks
+        Input: closePrices=pd.DataFrame (Dataframe of close prices of given stocks, and a given historical timelapse)
+        Output: stocksActualPrice=float, stocksRR=float, stocksR=float, stocksBehaviour=[]
+    '''
+    stocksBehaviour = [closePrices[i].dropna() for i in closePrices]
+    # Actual Price for all stocks
+    stocksActualPrice = pd.Series([i.iloc[-1] for i in stocksBehaviour], index=closePrices.columns)
+    # Stocks oldest date price
+    oldestClosePrice = pd.Series([i.iloc[0] for i in stocksBehaviour], index=closePrices.columns)
+    # Returns of the close prices
+    stocksR = stocksActualPrice - oldestClosePrice
+    # Return rates of the close prices
+    stocksRR = stocksR / oldestClosePrice
+    
+    ''' Actual Price, return, return rate, and historical price of each stock '''
+    return stocksActualPrice, stocksRR, stocksR, stocksBehaviour
+
+def tickerTapeStocks(stocksActualPrice, stocksRR, stocksR, currencies, symbols):
+    
+    def formatTicker(sym, price, changep, change, curr):
+        greenColors = ['rgba(72, 200, 0, 1)', '#089981']
+        redColors = ['rgba(255, 0, 0, 1)', '#f23645']
+        
+        if change > 0:
+            return html.Span('↑', style={'color':greenColors[0]}), html.Span(f"{sym}", style={'font-weight':'800'}), html.Span(f"{price:,.2f} {curr}", style={'font-weight':'800', 'margin-inline':'4px'}), html.Span(f"+{change:,.2f}", style={'color':greenColors[0]}), html.Span(f"(+{changep*100:,.2f}%)", style={'color':greenColors[0]})
+        else:
+            return html.Span('↓', style={'color':redColors[0]}), html.Span(f"{sym}", style={'font-weight':'800'}), html.Span(f"{price:,.2f} {curr}", style={'font-weight':'800', 'margin-inline':'4px'}), html.Span(f"{change:,.2f}", style={'color':redColors[0]}), html.Span(f"({changep*100:,.2f}%)", style={'color':redColors[0]})
+
+    tickerTape = html.Div([
+        html.Ul(
+            [html.Li(formatTicker(sym, stocksActualPrice[sym], stocksRR[sym], stocksR[sym], currencies[sym]), style={'display':'flex'}, className='py-0') for sym in symbols], 
+            style={'list-style':'none', 'flex-shrink':0, 'min-width':'100%', 'display':'flex', 'justify-content':'space-between', 'align-items':'center', 'gap':'20px', 'animation':f'scroll {len(symbols)*3}s linear infinite', 'margin-bottom':'0'},
+        ),
+        html.Ul(
+            [html.Li(formatTicker(sym, stocksActualPrice[sym], stocksRR[sym], stocksR[sym], currencies[sym]), style={'display':'flex'}, className='py-0') for sym in symbols], 
+            style={'list-style':'none', 'flex-shrink':0, 'min-width':'100%', 'display':'flex', 'justify-content':'space-between', 'align-items':'center', 'gap':'20px', 'animation':f'scroll {len(symbols)*3}s linear infinite', 'margin-bottom':'0'}, **{'aria-hidden': 'true'}
+        )
+    ], className='text-small stockTicker mb-5', style={'padding-block':'8px', 'border-block':'1px solid black', 'overflow':'hidden', 'user-select':'none', 'display':'flex', 'gap':'20px', 'background-color':'white'})
+    
+    return tickerTape
+
+def screeners():
+    Screenersfilename = "src/assets/screeners.json"
+    cpFilename = "src/assets/trendingTickersClosePrices.json"
+    # Leer o crear el archivo
+    sectoresDict = read_json(Screenersfilename)
+    # Trending tickers close prices
+    closePrices = read_json(cpFilename)
+    
+    # Timelapse for close prices and writing files
+    today = dt.today()
+    startDate = today - pd.Timedelta(days=360)
+    
+    today = today.strftime('%Y-%m-%d')
+    startDate = startDate.strftime('%Y-%m-%d')
+    
+    if sectoresDict == None:
+        print("Screeners: No existía el archivo")
+        screener = Screener()
+
+        # Consulting screeners of todays popular stocks in the market
+        sectoresDict = screener.get_screeners(['most_actives', 'day_gainers'])
+        
+        create_or_overwrite_json(Screenersfilename, {today:sectoresDict})
+    else:
+        lastUpdate = [i for i in sectoresDict.keys()][0]
+        if today == lastUpdate:
+            print("Screeners: Contenido actualizado al día de hoy")
+            
+            sectoresDict = sectoresDict[lastUpdate]
+        else:
+            print("Screeners: Falta actualizar contenido de al día de hoy")
+            sectoresDict = screener.get_screeners(['most_actives', 'day_gainers'])
+            
+            create_or_overwrite_json(Screenersfilename, {today:sectoresDict})
+    # Most Active Tickers
+    mostActiveSymbols = [i['symbol'] for i in sectoresDict['most_actives']['quotes']]
+    # Day Gainers Tickers
+    dayGainerSymbols = [i['symbol'] for i in sectoresDict['day_gainers']['quotes']]
+    # Trending tickers together, unique values
+    symbols = pd.Series(mostActiveSymbols + dayGainerSymbols).drop_duplicates().tolist()
+    
+    if closePrices == None:
+        closePrices = extractingData(symbols, startDate, True)
+        closePrices.index = closePrices.index.strftime('%Y-%m-%d')
+        
+        create_or_overwrite_json(cpFilename, {today:closePrices.to_dict()})
+    else:
+        lastUpdateCP = [i for i in closePrices.keys()][0]
+        if today == lastUpdateCP:
+            print("Screeners: Trending Tickers Close Prices Already Updated")
+            
+            closePrices = pd.DataFrame(closePrices[lastUpdateCP])
+        else:
+            print("Screeners: Trending Tickers Close Prices Outdated. Updating...")
+            closePrices = extractingData(symbols, startDate, True)
+            closePrices.index = closePrices.index.strftime('%Y-%m-%d')
+            
+            create_or_overwrite_json(cpFilename, {today:closePrices.to_dict()})
+    
+    return sectoresDict, mostActiveSymbols, dayGainerSymbols, symbols, closePrices

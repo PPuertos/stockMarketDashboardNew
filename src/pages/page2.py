@@ -17,7 +17,7 @@ main_title = html.Div("Portfolio Optimization", className='h1 text-center text-m
 sec_title = html.Div(id='sec_title_p2', className='h3 text-center text-md-start', children="1 Year S&P 500 Stocks Forecast", style={'color':'#5a5a5a'})
 
 # Defining Searcher
-stocks_searcher = pd.read_csv('stocks_list.csv')
+stocks_searcher = pd.read_csv('src/assets/stocks_list.csv')
 stocks_searcher = stocks_searcher[stocks_searcher['status'] == 'Active']
 stocks_searcher = stocks_searcher[stocks_searcher['assetType'] == 'Stock']
 searcher = [f'{name} - {symbol}' for symbol, name in zip(stocks_searcher['symbol'], stocks_searcher['name'])]
