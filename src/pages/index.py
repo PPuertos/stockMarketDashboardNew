@@ -22,7 +22,7 @@ portfolioWeights = pd.Series(data=[i/portfolioStocks['qty_bought_usd'].sum() for
 
 stocksList = [i for i in purchaseRecords['stock'].unique() if '.MX' not in i] + ['^GSPC']
 # Consulting news related to the stocks in the portfolio
-newsDict = om.NewsForAllActives(stocksList, 1)
+newsDict = om.NewsForAllActives(stocksList, 7)
 screener = Screener()
 
 # Consulting screeners of todays popular stocks in the market
@@ -38,7 +38,7 @@ portfolio_combined_balances_row = dbc.Row([
 
 portfolio_main_row = dbc.Col([
             portfolio_combined_balances_row,
-            html.Div(html.A("View History ->", className='p-0 bg-transparent border-0 text-black', style={'text-decoration':None}, href='/purchaseRecords'), className='text-end'),
+            html.Div(html.A("View History ->", id='view_purchase_records_link', className='p-0 bg-transparent text-black', style={'text-decoration':'none', 'border':'none'}, href='/purchaseRecords'), className='text-end'),
         ], style={'background':'#fafafa', 'border':'1px solid black', 'border-radius':'12px', 'padding':'20px 50px', 'margin-bottom':'50px'})
 
 ### PORTFOLIO OTHER VALUES ###
@@ -47,10 +47,10 @@ portfolio_main_row = dbc.Col([
 {'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}
 portfolio_values = dbc.Row([
     html.Div("Portfolio Performance", className='h2 text-start', style={'margin-bottom':'20px'}),
-    dbc.Col(html.Div([html.Span(id='risk_score', className='h5 justify-center'), html.Div("Risk Score", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%'}, className='p-3 d-flex flex-column align-items-center'), width=12, lg=3, sm=6, class_name='mb-4'),
-    dbc.Col(html.Div([html.Div(id='total_invested_home', style={'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}, className='h5'), html.Div("Investment", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black','height':'100%'}, className='p-3'), width=12, lg=3, sm=6, className='mb-4'),
-    dbc.Col(html.Div([html.Div(id='portfolio_returns_home', style={'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}, className='h5'), html.Div("Returns", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%'}, className='p-3'), width=12, lg=3, sm=6, className='mb-4'),
-    dbc.Col(html.Div([html.Div(id='profit_or_loss_home', style={'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}, className='h5'), html.Div("Profit/Loss", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%'}, className='p-3'), width=12, lg=3, sm=6, className='mb-4'),
+    dbc.Col(html.Div([html.Span(id='risk_score', className='h5 justify-center'), html.Div("Risk Score", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%'}, className='p-3 d-flex flex-column align-items-center'), width=6, lg=3, sm=6, class_name='mb-4'),
+    dbc.Col(html.Div([html.Div(id='total_invested_home', style={'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}, className='h5'), html.Div("Investment", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black','height':'100%'}, className='p-3'), width=6, lg=3, className='mb-4'),
+    dbc.Col(html.Div([html.Div(id='portfolio_returns_home', style={'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}, className='h5'), html.Div("Returns", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%'}, className='p-3'), width=6, lg=3, className='mb-4'),
+    dbc.Col(html.Div([html.Div(id='profit_or_loss_home', style={'font-size':'20px', 'font-weight':600, 'padding':'5px 15px'}, className='h5'), html.Div("Profit/Loss", className='h4', style={'color':'rgb(120,120,120)'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%'}, className='p-3'), width=6, lg=3, className='mb-4'),
 ], class_name='text-center')
 
 ### PORTFOLIO PLOTS ROW ###
@@ -68,7 +68,8 @@ config2 = {
     'staticPlot': True,  # Hace que el gráfico sea estático
     'displayModeBar': False,  # Oculta la barra de herramientas
     'scrollZoom': False,  # Desactiva el zoom con la rueda del mouse
-    'editable': True,  # Desactiva la edición de los gráficos
+    'editable': False,  # Desactiva la edición de los gráficos
+    'responsive': True
 }
 
 ### PALETA DE COLORES ###
@@ -94,54 +95,14 @@ pieChartTitle = html.Div(id="pie_chart_title",className="text-center h5",style={
 returnChartTitle = html.Div(id="return_chart_title",className="text-center h5",style={'font-weight':'600', 'margin-bottom':'15px'})
 
 plotsRow = dbc.Row([
-    dbc.Col(html.Div([pieChartTitle, dcc.Graph(id='selecting_stock_home', config=config1, style={'width': '100%'}), goBackButton], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'padding':'15px'}), width=12, lg=6, className='mb-4 mb-lg-0'),
-    dbc.Col(html.Div([returnChartTitle, dcc.Graph(id='six_month_returns', config=config2, style={'width': '100%'})], style={'background-color':'#fafafa', 'border-radius':'10px', 'border':'1px solid black', 'height':'100%', 'padding':'15px'}), width=12, lg=6)
+    dbc.Col(html.Div([pieChartTitle, dcc.Graph(id='selecting_stock_home', config=config1, style={'width': '100%'}), goBackButton], style={'background-color':'#fafafa', 'width':'100%', 'border-radius':'10px', 'border':'1px solid black', 'padding':'15px', 'height':'100%'}), width=12, lg=6, className='mb-4 mb-lg-0'),
+    dbc.Col(html.Div([returnChartTitle, dcc.Graph(id='six_month_returns', config=config2, style={'width':'100%'})], style={'background-color':'#fafafa','border-radius':'10px', 'border':'1px solid black', 'height':'100%', 'padding':'15px'}), width=12, lg=6, style={'min-height':'529px'})
 ], style={'margin-bottom':'50px'})
 
 ### STOCK NEWS ###
 ### STOCK NEWS ###
 ### STOCK NEWS ###
-def newCreation(newData, activeName):
-    today = dt.today()
-    publishDateFunction = lambda x: f"{(today - x).total_seconds()/3600:.0f} hours ago" if (today - x).total_seconds()/3600 <= 24 else ("yesterday" if (today - x).total_seconds()/(3600*24) < 2 else (f"{(today - x).total_seconds()/(3600*24):.0f} days ago" if (today - x).total_seconds()/(3600*24) < 7 else x.strftime('%Y-%m-%d')))
-    newDate = dt.fromtimestamp(newData['datetime'])
-    newDate = publishDateFunction(newDate)
-    newHeadLine = newData['headline']
-    newImage = newData['image']
-    newSource = newData['source']
-    newSummary = newData['summary'].split('. ')[0] + '.' if len(newData['summary'].split('. ')) > 1 else newData['summary'].split('. ')[0]
-    newUrl = newData['url']
-    
-    new = html.Div([
-        dbc.Row([
-            # Columna de la imagen
-            dbc.Col(
-                html.Div(
-                    html.Img(src=newImage, style={'width': '100%', 'border-radius': '10px', 'height': '100%', 'object-fit': 'cover'}),
-                    style={'width': '100%', 'overflow': 'hidden'},
-                    className='height-for-image-new d-flex justify-content-center align-items-center p-0 mb-3 mb-lg-0'  # Centra la imagen verticalmente
-                ), 
-                width=12, xxl=3, xl=4, lg=5, 
-                className='d-flex align-items-center'  # Alineación vertical de la columna de imagen
-            ),
-            # Columna de los textos
-            dbc.Col([
-                html.Div(f"Related to: {activeName}", className='h4 news-stock', style={'font-weight': '800'}),
-                html.Div(newHeadLine, className='h3 mb-2 news-headline text-start', style={'font-weight': '700', 'font-size': '24px'}),
-                html.Div(newSummary, className='small-text', style={'text-decoration': None, 'color': 'black'}),
-                html.Div(f"{newSource} • {newDate}", style={'font-size': '12px', 'margin-top': '10px', 'text-decoration': None, 'color': 'black'}, className='mt-auto text-end pt-3')
-            ], 
-                width=12, xxl=9, xl=8, lg=7, 
-                class_name='d-flex flex-column justify-content-start'  # Alineación del texto al inicio de la columna
-            )
-        ], 
-        className='align-items-stretch'  # Alinea las columnas según la altura de la más alta
-    )], style={'padding': '10px', 'border-radius': '12px', 'border': '1px solid black', 'background-color':'#fff'}, className='mb-4')
-
-    new = html.A(new, href=newUrl, target="_blank", className='news-container')
-
-    return new
-         
+        
 newsRow = dbc.Row([
     html.Div("Recent News", className='h2', style={'margin-bottom':'20px'}),
     html.Div(id='news_list_home', style={'border':'1px solid black', 'background-color':'#fafafa', 'padding':'20px', 'border-radius':'14px'}),
@@ -150,8 +111,6 @@ newsRow = dbc.Row([
 ], style={'margin-bottom':'50px'})
 
 
-
-### Popular Stocks Tree Map ###
 ### Popular Stocks Tree Map ###
 ### Popular Stocks Tree Map ###
 ### Popular Stocks Tree Map ###
@@ -332,8 +291,7 @@ def moreNews(nClicks, storedData, data):
                 while success < 2:
                     try:
                         if 'https' in newsDict[i][j]['image'] and newsDict[i][j]['headline'] not in newsHeadersLinks: #and (determiningName(i).split()[0] in newsDict[i][j]['headline'] or determiningName(i).split()[0] in newsDict[i][j]['summary']):
-                            newsList.append(newCreation(newsDict[i][j], determiningName(i)))
-                            j += 1
+                            newsList.append(om.newCreation(newsDict[i][j], determiningName(i)))
                             success += 1
                     except:
                         return newsList, [newsList, j, newsHeadersLinks], {'display':'none'}
@@ -351,9 +309,8 @@ def moreNews(nClicks, storedData, data):
                 while success < 2:
                     if 'https' in newsDict[i][j]['image'] and newsDict[i][j]['headline'] not in newsHeadersList: #and (determiningName(i).split()[0] in newsDict[i][j]['headline'] or determiningName(i).split()[0] in newsDict[i][j]['summary']):
                         
-                        newsList.append(newCreation(newsDict[i][j], determiningName(i)))
+                        newsList.append(om.newCreation(newsDict[i][j], determiningName(i)))
                         newsHeadersList.append(newsDict[i][j]['headline'])
-                        j += 1
                         success += 1
                     j += 1 
             

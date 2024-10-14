@@ -25,27 +25,35 @@ secondary_title = html.Div(id='sec_title', className="h3 text-center text-md-sta
 
 # Dropdown menu item for date range
 # Time lapse options
-timelapse_dict = {'d15':'15 Days','d30':'1 Month', 'd90':'3 Months','d180':'6 Months', 'd252':'1 Year', 'All Time':'All Time'}
-timelapse_id = [i for i in timelapse_dict]
-timelapse = [i for i in timelapse_dict.values()]
+timelapse_dict = {'15 Days':15,'1 Month':30, '3 Months':90,'6 Months':180, '1 Year':252, 'All Time':'All Time'}
+timelapse_label = [i for i in timelapse_dict]
+timelapse_value = [i for i in timelapse_dict.values()]
 
-# Time lapse items
-items_timelapse = [dbc.DropdownMenuItem(j, id=i) for i, j in zip(timelapse_id, timelapse)]
-# time lapse dropdown
-dropdown_timelapse =  dbc.DropdownMenu(label="Timelapse", size="sm", color='transparent',direction='bottom', children=items_timelapse)
+## CONFIGURATION FOR FIGURES ##
+config1 = {
+    'staticPlot': False,  # Hace que el gráfico sea estático
+    'displayModeBar': False,  # Oculta la barra de herramientas
+    'scrollZoom': False,  # Desactiva el zoom con la rueda del mouse
+    'editable': False,  # Desactiva la edición de los gráficos
+    'responsive':True
+}
 
 # Dropdown menu item for market 
 # Market Options
+
 market_id = ['^GSPC', '^MXX'] 
 market = ['S&P 500', 'IPC MEXICO']
-# market items
-items_market = [dbc.DropdownMenuItem(j, id=i) for i, j in zip(market_id, market)]
-# market dropdown
-dropdown_market = dbc.DropdownMenu(label="Market", size="sm", color='transparent',direction='bottom', children=items_market)
+
+### NEW DROPDOWN PROPOSITION
+items_market = [{'label':i, 'value':j} for i,j in zip(market, market_id)]
+dropdown_market = dbc.Select(id='dropdown_market_p1', placeholder='Select Market', options=items_market, value='^GSPC', style={'width':'auto','border-radius':'20px', 'font-size':'15px', 'font-width':'100', 'background-color':'transparent', 'border':None})
+
+items_timelapse = [{'label':i, 'value':j} for i,j in zip(timelapse_label, timelapse_value)]
+
+dropdown_timelapse = om.dropdownMaker('dropdown_timelapse_p1', 'Select Timelapse', items_timelapse, 'All Time','98px')
+dropdown_market = om.dropdownMaker('dropdown_market_p1', 'Select Market', items_market, '^GSPC', '114px')
 
 portfolio_graph = dbc.Row([
-    # Component to store selected market data from dropdown
-    dcc.Store(id='selected_market'),
     # Column With Dropdowns
     dbc.Col([
         html.Span(dropdown_market, style={'display':'inline-block', 'margin-right':'5px'}),
@@ -56,7 +64,7 @@ portfolio_graph = dbc.Row([
                 html.Span(id='portfolio_return_rate', className='text-center align-center small-text'), 
                 ], style={'margin-bottom':'20px', 'display':'flex', 'align-items':'center'}, width=12),
     # Column With Graph
-    dbc.Col(dcc.Graph(id='portfolio_graph', config={'responsive': True}, style={'width': '100%', 'height': '50vw'}), width=12),
+    dbc.Col(dcc.Graph(id='portfolio_graph', config=config1, style={'width': '100%', 'height': '50vw'}), width=12),
     
     ], className='text-black', style={'border-radius':'14px', 'margin-bottom':'50px', 'padding':'20px', 'background':'#fafafa', 'border':'1px solid #000'})
 
@@ -71,57 +79,56 @@ portfolio_info = dbc.Row([
             html.Div("Hist. Inv.", className='h3'),
             html.Div(id='market_investment', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
     dbc.Col([
         html.Div([
             html.Div("Period Inv.", className='h3'),
             html.Div(id='market_period_investment', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
     dbc.Col([
         html.Div([
             html.Div("Returns", className='h3'),
             html.Div(id='portfolio_returns', className='h5'),
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
     dbc.Col([
         html.Div([
             html.Div("Daily VaR", className='h3'),
             html.Div(id='VaR', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
     dbc.Col([
         html.Div([
             html.Div("Daily CVaR", className='h3'),
             html.Div(id='CVaR', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
-            dbc.Col([
+    dbc.Col([
         html.Div([
             html.Div("Volatility", className='h3'),
             html.Div(id='portfolio_risk', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
-            dbc.Col([
+    dbc.Col([
         html.Div([
             html.Div("Alpha", className='h3'),
             html.Div(id='portfolio_alpha', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
             
-            dbc.Col([
+    dbc.Col([
         html.Div([
             html.Div("Beta", className='h3'),
             html.Div(id='portfolio_beta', className='h5'),  
         ])
-    ], width=12, sm=6, class_name='info-container'),
-    
+    ], width=12, sm=6, md=4, lg=3, class_name='info-container'),
     
 ], class_name='text-center', id='info-row', style={'margin-bottom':'50px'})
 
@@ -130,78 +137,24 @@ portfolio_info = dbc.Row([
 ### STOCK AND MARKET SLIDERS ROW ###
 ### STOCK AND MARKET SLIDERS ROW ###
 ### STOCK AND MARKET SLIDERS ROW ###
-def mini_line_plot(serie, color):
-    # Creamos el gráfico de línea
-    fig = go.Figure(go.Scatter(
-        x=serie.index,
-        y=serie.values,
-        mode='lines',
-        line=dict(color=color, width=2)
-    ))
 
-    # Ajustamos el layout para eliminar los ejes, cuadrículas y hacer el fondo transparente
-    fig.update_layout(
-        margin=dict(t=0, b=0, l=0, r=0),  # Márgenes reducidos
-        showlegend=False,
-        hovermode=False,
-        xaxis=dict(showgrid=False, zeroline=False, visible=False),  # Eje x oculto
-        yaxis=dict(showgrid=False, zeroline=False, visible=False),  # Eje y oculto
-        plot_bgcolor='rgba(0, 0, 0, 0)',  # Fondo del gráfico transparente
-        paper_bgcolor='rgba(0, 0, 0, 0)',  # Fondo de la figura transparente
-    )
-    
-    return fig
-
-## FUNCTION FOR A SLIDER WITH ELEMENTS
-def container_with_slider(portfolio_stocks=list, stock_returns=list, stock_return_rates=list, stock_behaviour=pd.Series(), asset_type=str):
-    stock_boxes = []
-    
-    rate_style_colors = lambda returns: 'rgba(72, 200, 0, 1)' if returns > 0 else 'rgba(255, 0, 0, 1)'
-    format_returns = lambda returns: f"${returns:,.2f}" if returns > 0 else f"-${-returns:,.2f}"
-    format_return_rate = lambda returns: f"+{returns*100:,.2f}%" if returns > 0 else f"-{-returns*100:,.2f}%"
-    prueba = lambda asset_type: 'Returns' if asset_type == 'stocks' else 'Price'
-    
-    
-    for i, s_ret, s_ret_rate, behav in zip(portfolio_stocks, stock_returns, stock_return_rates, stock_behaviour):
-        s_ret_formatted = format_returns(s_ret)
-        s_ret_rate_form = format_return_rate(s_ret_rate)
-        rate_color = rate_style_colors(s_ret_rate)
-        plot = mini_line_plot(behav, rate_color)
-        
-        stock_boxes.append(dbc.Row([
-            # Stock Title
-            dbc.Col(html.Div(i, style={'font-size':'30px', 'font-weight':'200'}), width=7),
-            # Return Rate on Portfolio
-            dbc.Col(html.Div(s_ret_rate_form, style={'font-size':'20px', 'font-weight':'300', 'color':rate_color, 'text-align':'end'}), width=5),
-            # Returns on Portfolio
-            dbc.Col([html.Div(prueba(asset_type), style={'font-size':'20px', 'font-weight':'400'}), html.Div(s_ret_formatted, className='text-start', style={'font-size':'25px','font-weight':'400px'})], width=6),
-            # Graph
-            dbc.Col(dcc.Graph(figure=plot, config={'displayModeBar': False, 'responsive': True}, style={'width': '100%', 'height': '5vw'}),width=6)
-
-            ], style={'width':'20em', 'padding':'10px', 'border-radius':'10px', 'border':'1px solid black', 'background':'white','flex':'0 0 auto', 'margin-right':'30px'}, class_name='my-auto'))
-        
-    return stock_boxes
-
-### PORTFOLIO STOCKS AN MARKETS ROW ###   
+### PORTFOLIO STOCKS AN MARKETS ROW ###  
 stock_and_market_row = dbc.Row([
+    # Stocks Title
     dbc.Col([
-        ## PORTFOLIO STOCKS TITLE ##
-        html.Div(id='market_stocks', className='h2 text-center', style={'font-size':'35px', 'font-weight':'300','margin-bottom':'30px'}),
+        html.Div(id='market_stocks_page1', className='h2 text-center', style={'font-size':'35px', 'font-weight':'300','margin-bottom':'30px'})
     ]),
-    ## HORIZONTALLY SLIDABLE CONTAINER WITH PORTFOLIO STOCKS ##
-    dbc.Col(id='stock_boxes',width=12, style={'background':'#fafafa', 'padding':'40px 0 40px 30px', 'border-radius':'12px', 'border':'1px solid black','display':'flex', 'overflow-x':'auto','white-space': 'nowrap','margin-bottom':'50px'}),
-    
-    ### MARKET ROW ###
-    dbc.Col(
-        ## PORTFOLIO MARKETS TITLE ##
-        html.Div("Markets", className='h2 text-center', style={'font-size':'35px', 'font-weight':'300','margin-bottom':'30px'}),
-    ),
-    ## HORIZONTALLY SLIDABLE CONTAINER WITH PORTFOLIO STOCKS ##
-    dbc.Col(id='market_boxes',width=12, style={'background':'#fafafa', 'padding':'40px 0 40px 30px', 'border-radius':'12px', 'border':'1px solid black','display':'flex', 'overflow-x':'auto','white-space': 'nowrap'})
-    
-],style={'margin-bottom':'50px'}, justify='evenly')
+    # Stocks Slider
+    dbc.Col(id='stock_boxes_page1', width=12, class_name='px-0', style={'margin-bottom':'50px'}),
+    # Markets Title
+    dbc.Col([
+        html.Div("Markets", className='h2 text-center', style={'font-size':'35px', 'font-weight':'300','margin-bottom':'30px'})
+    ]),
+    dbc.Col(id="market_boxes_page1", width=12, class_name='px-0')
+], style={'margin-bottom':'50px'})
 
-# Define el layout de tu aplicación
+
+# APP LAYOUT #
 layout = html.Div([
     dbc.Container([
         main_title,
@@ -211,21 +164,6 @@ layout = html.Div([
         stock_and_market_row
     ], style={'margin-top':'50px', 'padding-right':'0','padding-left':'0'}, fluid=True)
 ])
-
-
-@callback(
-    Output('selected_market', 'data'),
-    [Input(id_item,'n_clicks') for id_item in market_id]
-)
-def update_selected_market(*args):
-    ctx = dash.callback_context
-    
-    if not ctx.triggered:
-        selected_market = '^GSPC'
-    else:
-        selected_market = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    return selected_market
 
 @callback(
     [
@@ -244,19 +182,16 @@ def update_selected_market(*args):
         Output('portfolio_risk','children'),
         Output('portfolio_alpha','children'),
         Output('portfolio_beta','children'),
-        Output('market_stocks', 'children'),
-        Output('stock_boxes', 'children'),
-        Output('market_boxes','children')
+        Output('market_stocks_page1', 'children'),
+        Output('stock_boxes_page1', 'children'),
+        Output('market_boxes_page1','children')
         ],
-    [Input('selected_market', 'data'), Input('portfolio_main_data', 'data')] + [Input(id_item, 'n_clicks') for id_item in timelapse_id]
+    [Input('dropdown_market_p1', 'value'), Input('dropdown_timelapse_p1', 'value'), Input('portfolio_main_data', 'data')]
 )
-def market_portoflio_graph(selected_market, data, *args):
+def market_portoflio_graph(selected_market, selected_timelapse, data):
     ## THIS PART IS FOR VARIABLE OUTPUTS ##
     ## THIS PART IS FOR VARIABLE OUTPUTS ##
     ## THIS PART IS FOR VARIABLE OUTPUTS ##
-    ctx = dash.callback_context
-    
-    selected_timelapse = 'All Time'
 
     # Conditionals for formatting
     # String values
@@ -272,14 +207,7 @@ def market_portoflio_graph(selected_market, data, *args):
     portfolio_total_inv = data[selected_market]['Other Results']['total_investment']
     # Market Purchase Records
     market_records = pd.DataFrame(data['records_by_market'][selected_market])
-    
-    if ctx.triggered:
-        # Market Selected
-        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        
-    if triggered_id in timelapse_id:
-        selected_timelapse = triggered_id
-            
+ 
     if selected_timelapse == 'All Time':
         # Portfolio Historical Evolution
         data_range = pd.Series(data[selected_market]['behaviour'])
@@ -299,7 +227,7 @@ def market_portoflio_graph(selected_market, data, *args):
         
     else:
         # Selecting Range (Portfolio Evolution in a determined period)
-        data_range = pd.Series(data[selected_market]['behaviour']).iloc[-int(selected_timelapse[1:]):]
+        data_range = pd.Series(data[selected_market]['behaviour']).iloc[-int(selected_timelapse):]
         # FOR ADJUSTED INITIAL VALUE
         # Investment made in that period
         period_inv = sum([inv for date, inv in zip(market_records.index, market_records['qty_bought_usd']) if date in data_range.index])
@@ -311,7 +239,7 @@ def market_portoflio_graph(selected_market, data, *args):
         portfolio_return_rate = portfolio_returns/adj_initial_value
         
         # Market daily return rates (data frame with stocks returns) (This one is for VaR and CVaR calculation)
-        market_daily_r_rates = pd.DataFrame(data[selected_market]['stocks_daily_return_rates']).iloc[-int(selected_timelapse[1:]):,:]
+        market_daily_r_rates = pd.DataFrame(data[selected_market]['stocks_daily_return_rates']).iloc[-int(selected_timelapse):,:]
         # Market daily Return rates
         market_rr = market_daily_r_rates[selected_market]
         # Stocks daily return rates without its markets
@@ -382,7 +310,7 @@ def market_portoflio_graph(selected_market, data, *args):
         else:
             ## PARA SABER CUANTO HEMOS INVERTIDO EN EL STOCK
             # Comportamiento histórico del stock "n" años atrás
-            stock_beh = pd.Series(data[selected_market][i]['behaviour']).iloc[-int(selected_timelapse[1:]):]
+            stock_beh = pd.Series(data[selected_market][i]['behaviour']).iloc[-int(selected_timelapse):]
             # Records de las inversiones hechas en el stock
             stock_inv_record = market_records[market_records['stock'] == i]
             # Inversion hecha a "n" años atrás
@@ -410,7 +338,7 @@ def market_portoflio_graph(selected_market, data, *args):
             st_price = mkt_beh.iloc[0]
             act_price = mkt_beh.iloc[-1]
         else:
-            mkt_beh = pd.Series(data[i]['close_prices'])[-int(selected_timelapse[1:]):]
+            mkt_beh = pd.Series(data[i]['close_prices'])[-int(selected_timelapse):]
             st_price = mkt_beh.iloc[0]
             act_price = mkt_beh.iloc[-1]
         
@@ -422,8 +350,17 @@ def market_portoflio_graph(selected_market, data, *args):
         
     
     subtitleFormat = lambda x: f"{x} Returns" if x != 'All Time' else f"{x} Returns (≈ {round(len(data[selected_market]['behaviour'])/5/4/12)} years)"
+    
+    def selected_timelapse_name(selected_timelapse, timelapse_dict):
+        for label, value in timelapse_dict.items():
+            if selected_timelapse == 'All Time':
+                return selected_timelapse
+            else:
+                if value != 'All Time':
+                    if int(selected_timelapse) == value:
+                        return label
         
-    return figure, f"${portfolio_actual_worth:,.2f} USD", portfolio_return_rate, return_rate_style, portfolio_returns, returns_style, f"{data[selected_market]['longName']} Portfolio", subtitleFormat(timelapse_dict[selected_timelapse]), f"${portfolio_total_inv:,.2f} USD", f"${period_inv:,.2f} USD", f"${-VaR_95*portfolio_total_inv:,.2f}", f"${-CVaR_95*portfolio_total_inv:,.2f}", f"{portfolioV*100:,.2f}%",f"{beta_alpha['alpha']*100:,.2f}%", f"{beta_alpha['beta']*100:,.2f}%", f"{data[selected_market]['longName']} Stocks", container_with_slider(market_stocks, stock_returns, stock_ret_rates, stock_behaviour, 'stocks'), container_with_slider(markets, actual_prices, market_ret_rates, market_behaviour, 'markets')
+    return figure, f"${portfolio_actual_worth:,.2f} USD", portfolio_return_rate, return_rate_style, portfolio_returns, returns_style, f"{data[selected_market]['longName']} Portfolio", subtitleFormat(selected_timelapse_name(selected_timelapse, timelapse_dict)), f"${portfolio_total_inv:,.2f} USD", f"${period_inv:,.2f} USD", f"${-VaR_95*portfolio_total_inv:,.2f}", f"${-CVaR_95*portfolio_total_inv:,.2f}", f"{portfolioV*100:,.2f}%",f"{beta_alpha['alpha']*100:,.2f}%", f"{beta_alpha['beta']*100:,.2f}%", f"{data[selected_market]['longName']} Stocks", om.container_with_slider(market_stocks, stock_returns, stock_ret_rates, stock_behaviour, 'stocks'), om.container_with_slider(markets, actual_prices, market_ret_rates, market_behaviour, 'markets')
 
 '''
 OUTPUT

@@ -60,48 +60,50 @@ pred_fig, pred_table = efficientFrontier([s.split(' ')[-1] for s in preDefStocks
 
 # Dropdown menu item for date range
 # Time lapse options
-timelapse_dict = {'w2':'2 Weeks','w4':'1 Month', 'w12':'3 Months','w24':'6 Months', 'w48':'1 Year', 'w96':'2 Years', 'w240':'5 Years'}
-timelapse_id = [i for i in timelapse_dict]
-timelapse = [i for i in timelapse_dict.values()]
+timelapse_dict = {'w2':'2 Weeks', 'w4':'1 Month', 'w12':'3 Months', 'w24':'6 Months', 'w48':'1 Year', 'w96':'2 Years', 'w240':'5 Years'}
+timelapse_items = [{'label':timelapse_dict[label],'value':label} for label in timelapse_dict]
 
-# Time lapse items
-items_timelapse = [{'label':j, 'value':i} for i,j in zip(timelapse_id, timelapse)]
-dropdown_timelapse = dbc.Select(id='dropdown_timelapse_p2',options=items_timelapse, value=items_timelapse[4]['value'], style={'margin-left':'10px'})
+markets = ['^GSPC', '^MXX']
+markets_dict = {mkt:yf.Ticker(mkt).info['longName'] for mkt in markets}
+markets_items = [{'label':markets_dict[label], 'value':label} for label in markets_dict]
 
-# Dropdown menu item for market 
-# Market Options
+dropdown_timelapse = om.dropdownMaker('dropdown_timelapse_p2', 'Select Timelapse', timelapse_items, 'w48', '100px')
+dropdown_market = om.dropdownMaker('dropdown_market_p2', 'Select Market', markets_items, '^GSPC', '116px')
 
-mktn = ['^GSPC', '^MXX']
-data = {mkt:yf.Ticker(mkt).info for mkt in mktn}
-market = [data['^GSPC']['longName'], data['^MXX']['longName']]
-market_id = ['^GSPC', '^MXX']
 
-# market items
-items_market = [{'label':j,'value':i} for i,j in zip(market_id, market)]
-dropdown_market = dbc.Select(id='dropdown_market_p2',options=items_market, value=items_market[0]['value'])
+bgImage = '''url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"%3E%3Cpath d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"%3E%3C/path%3E%3C/svg%3E');'''
+bgPosition = 'right 8px center'
+computeButton = dbc.Button("Compute", outline=True, class_name='text-start', size='sm',id='compute_button', style={'width':'98px','border-radius':'8px', 'font-size':'16px', 'font-width':'100','padding':'5px 8px', 'border':'none', 'color':'rgb(100,100,100)','background-size': '10px', 'background-position':bgPosition, 'background-repeat':'no-repeat'})
 
-computeButton = dbc.Button("Compute", className="me-1", outline=True, color='success', size='sm',id='compute_button')
 
-plotButtons = dbc.Row([
-        dbc.Col(
+plotButtons = html.Div([
+        html.Span(
             computeButton
         ),
-        dbc.Col(
-            html.Div([
-                dropdown_market, dropdown_timelapse
-            ], className="d-inline-flex"),  # Alinea los dropdowns en línea
-            width="auto",  # Ajusta el tamaño del contenedor de dropdowns
-            className="ml-auto"  # Empuja los dropdowns hacia la derecha
-        )
-    ], justify="between") 
+        
+        html.Div([
+            html.Div(dropdown_market), html.Div(dropdown_timelapse, style={'margin-left':'5px'})  
+        ], className='d-inline-flex')
+        
+    ], className='d-flex justify-content-between',style={'border-radius':'14px 14px 0 0', 'border':'1px solid rgb(190,187,187)', 'padding':'15px', 'background-color':'rgb(243,244,244)'})
 
-portfolio_graph = dbc.Row([
+config1 = {
+    'staticPlot': False,  # Hace que el gráfico sea estático
+    'displayModeBar': False,  # Oculta la barra de herramientas
+    'scrollZoom': False,  # Desactiva el zoom con la rueda del mouse
+    'editable': False,  # Desactiva la edición de los gráficos
+    'responsive':True
+}
+
+portfolio_graph = html.Div([
     # Column With Dropdowns
     plotButtons,
     # Column With Graph
-    dbc.Col(dcc.Graph(id='portfolio_graph_p2', figure=pred_fig, config={'responsive': True}, style={'width': '100%', 'height': '50vw'}), width=12),
+    html.Div([
+       html.Div(dcc.Graph(id='portfolio_graph_p2', figure=pred_fig, config={'responsive': True}, style={'width':'100%', 'height':'100%', 'background-color':'transparent', 'padding':'14px'}), style={'width':'100%', 'height':'100%', 'background-color':'transparent'}), 
+    ], style={'width': '100%', 'height': '50vw','padding':'0', 'border-radius':'0 0 14px 14px', 'border-bottom':'1px solid rgb(190,187,187)', 'border-left':'1px solid rgb(190,187,187)', 'border-right':'1px solid rgb(190,187,187)', 'background-color':'transparent'}),
     
-    ], className='text-black', style={'border-radius':'14px', 'margin-bottom':'50px', 'padding':'20px', 'background':'#fafafa', 'border':'1px solid #000'})
+    ], className='text-black', style={'margin-bottom':'50px', 'padding':'0'})
 
 ### PORTFOLIO EFFICIENT FRONTIER TABLE ###
 ### PORTFOLIO EFFICIENT FRONTIER TABLE ###
@@ -134,8 +136,7 @@ def computeEfficientFrontier(computeButton, selectedMarket, selectedTimelapse, s
     if ctx.triggered:
         triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
         
-        period = lambda x: x[:-1] if x[-1] == 's' else x
-        subtitle = f"{period(timelapse_dict[selectedTimelapse])} {data[market]['longName']} Stocks Forecast"
+        subtitle = f"{timelapse_dict[selectedTimelapse]} {markets_dict[market]} Stocks Forecast"
     
         if triggered_id == 'compute_button':
             if market == '^MXX':

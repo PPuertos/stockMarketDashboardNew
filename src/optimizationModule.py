@@ -299,7 +299,7 @@ def efficientFrontierPlot(efficientResults, maxSR_std, maxSR_returns, minVol_std
         line=dict(color='rgb(0,0,0,1)', dash=tod[0], width=1.5),
         hoverinfo=None,
         hoverlabel=dict(
-            bgcolor='rgb(245,245,245)',  # Background color with transparency
+            bgcolor='rgb(243,244,244)',  # Background color with transparency
             font_size=16,               # Font size (adjusted for better readability)
             font_color="black",         # Font color (white for contrast on dark background)
             bordercolor="rgb(0,0,0,1)",        # Border color
@@ -343,7 +343,7 @@ def efficientFrontierPlot(efficientResults, maxSR_std, maxSR_returns, minVol_std
         layout=dict(template='none', title=dict(text='<b>Efficient Frontier Optimization</b>', x=.5, font=dict(size=20)), xaxis=dict(title=f'{periodCalc} Volatility (%)'), yaxis=dict(title=f'{periodCalc} Returns (%)')),
     )
 
-    fig.update_layout(hovermode='x', paper_bgcolor='#fafafa', plot_bgcolor='#fafafa')
+    fig.update_layout(hovermode='x', paper_bgcolor='rgba(255,255,255,0)', plot_bgcolor='rgba(255,255,255,0)')
     # Optionally, you can add vertical 'spike' lines on hover to make the nearest y-point clearer
     fig.update_xaxes(showspikes=True, spikecolor='rgb(0,0,0)', spikemode="across", spikethickness=1, spikedash=tod[1], spikesnap='hovered data')
     fig.update_yaxes(showspikes=True, spikecolor='rgb(0,0,0)', spikemode="across", spikethickness=1, spikedash=tod[1], spikesnap='hovered data')
@@ -510,116 +510,146 @@ def portfolioActuals():
         Input: Nothing
         Output: financial results and metrics for a better understanding of your portfolio health
     '''
-    purchaseRecords = pd.read_csv('src/assets/purchaseRecords.csv')
-    purchaseRecords.index = pd.to_datetime(purchaseRecords['date']).dt.strftime('%Y-%m-%d')
-    purchaseRecords = purchaseRecords.drop(columns='date')
+    filename = '/Users/macbook/Desktop/Stock-Market-Dashboard/stockMarketDashboardNew/src/assets/portfolioActuals.json'
     
-    exchangeRate = float(er.ExchangeUsdToMxn())
-    
-    # Separed Data Frames for Each Market
-    # Purchase records by market
-    portfolio_by_market = {}
-    # Total investment by market
-    initial_investment = {}
-    # Oldest purchase record by market
-    oldest_date = {}
-    # Stock weights by market
-    weights = {}
-    # Total investment in each stock by market
-    investment_by_stock = {}
-    
-    # Cicle for each market
-    for market in purchaseRecords['market'].unique():
-        # Market purchase records
-        market_records = purchaseRecords.loc[purchaseRecords['market'] == market,:]
-        portfolio_by_market[market] = market_records
-        # Market all time investment
-        initial_investment[market] = market_records['qty_bought_usd'].sum()
-        # Oldest purchase date (optimization purposes)
-        oldest_date[market] = market_records.index.min()
-        # Stocks historical investments from the market
-        inv_by_stock = market_records.groupby('stock').agg({'qty_bought_usd':'sum'})['qty_bought_usd']
-        investment_by_stock[market] = inv_by_stock
-        # Portfolio weights in the market
-        weights[market] = inv_by_stock/sum(inv_by_stock)
+    def portfolioUpdate():
+        purchaseRecords = pd.read_csv('/Users/macbook/Desktop/Stock-Market-Dashboard/stockMarketDashboardNew/src/assets/purchaseRecords.csv')
+        purchaseRecords.index = pd.to_datetime(purchaseRecords['date']).dt.strftime('%Y-%m-%d')
+        purchaseRecords = purchaseRecords.drop(columns='date')
         
-
-    # Main Dictionary
-    portfolio_data = {}
-    # Starting portfolio behaviour variable
-    port_behaviour = pd.Series()
-    # Cicle to evaluate all the markets
-    for market in portfolio_by_market:
-        # Stocks investments in the market
-        stocks = portfolio_by_market[market]['stock'].unique().tolist()
-        # behaviour of all the stock in a sepecific market of the portfolio
-        market_behaviour = pd.Series()
-        # Dicitonary for the specific market
-        portfolio_data[market] = {'longName':yf.Ticker(market).info['longName']}
-        # Stocks close prices
-        stocks_close_prices = extractingData(stocks=stocks + [market], startDate=oldest_date[market], closePrices=True)
-        stocks_close_prices.index = pd.Series(stocks_close_prices.index).dt.strftime('%Y-%m-%d')
-        # Stocks Return Rates
-        stocks_daily_r_rates = dailyReturnRates(stocks_close_prices)
+        exchangeRate = float(er.ExchangeUsdToMxn())
         
-        if market == '^MXX':
-            stocks_close_prices = stocks_close_prices/exchangeRate
-            stocks_daily_r_rates = stocks_daily_r_rates
-        # Cicle to evaluate the stocks of each market
-        for stock in portfolio_by_market[market]['stock'].unique():
-            # Purchase record of the stock
-            stock_info = portfolio_by_market[market][portfolio_by_market[market]['stock'] == stock]
-            # Stock close prices
-            stock_hist_data = stocks_close_prices[stock]
+        # Separed Data Frames for Each Market
+        # Purchase records by market
+        portfolio_by_market = {}
+        # Total investment by market
+        initial_investment = {}
+        # Oldest purchase record by market
+        oldest_date = {}
+        # Stock weights by market
+        weights = {}
+        # Total investment in each stock by market
+        investment_by_stock = {}
+        
+        # Cicle for each market
+        for market in purchaseRecords['market'].unique():
+            # Market purchase records
+            market_records = purchaseRecords.loc[purchaseRecords['market'] == market,:]
+            portfolio_by_market[market] = market_records
+            # Market all time investment
+            initial_investment[market] = market_records['qty_bought_usd'].sum()
+            # Oldest purchase date (optimization purposes)
+            oldest_date[market] = market_records.index.min()
+            # Stocks historical investments from the market
+            inv_by_stock = market_records.groupby('stock').agg({'qty_bought_usd':'sum'})['qty_bought_usd']
+            investment_by_stock[market] = inv_by_stock
+            # Portfolio weights in the market
+            weights[market] = inv_by_stock/sum(inv_by_stock)
             
-            # Making new dicionary were we will store the complete data of the stock (in df), and the returns of every inversion made of each stock
-            portfolio_data[market][stock] = {'longName':yf.Ticker(stock).info['longName'], 'shortName':yf.Ticker(stock).info['shortName'],'data':stock_hist_data.to_dict()}
-            # Cicle to evaluate returns of each record
-            stock_behaviour = pd.Series()
-            for date in stock_info.index:
-                # Close Prices of the record
-                close_prices = stock_hist_data[stock_hist_data.index >= date]
-                # Record Info
-                record_info = stock_info.loc[date, :]
-                # Stock purchase price
-                purchase_price = record_info['stock_price_usd']
-                # Purchase Quantity
-                total_bought = record_info['qty_bought_usd']
-                # Purchase in stock units
-                stock_units = record_info['n_stocks']
-                # Record Behaviour
-                record_behaviour = stock_units*close_prices
-                # Adding the record to the stock behaviour
-                stock_behaviour = stock_behaviour.add(record_behaviour, fill_value=0)
-                # Adding the record behaviour to its section in the dictionary (conclusion of the record)
-                portfolio_data[market][stock][date] = {'close_prices':close_prices, 'purchase_price':purchase_price, 'total_bought':total_bought, 'record_behaviour':record_behaviour.to_dict()}
-            # Stock behaviour            
-            portfolio_data[market][stock]['behaviour'] = stock_behaviour.to_dict()
-            # Adding the stock behaviour to the market behaviour
-            market_behaviour = market_behaviour.add(stock_behaviour, fill_value=0)
-        # Concluding the market behaviour
-        portfolio_data[market]['behaviour'] = market_behaviour.to_dict()
-        # Market Stocks Daily Return Rates
-        portfolio_data[market]['stocks_daily_return_rates'] = stocks_daily_r_rates.to_dict()
-        # Actual Portfolio Worth (In that specific market)
-        market_actual_worth = market_behaviour[market_behaviour.index.max()]
-        # Capital invested in the market
-        investment_in_market = initial_investment[market]
-        # Return Rate
-        market_return_rate = market_actual_worth/investment_in_market - 1
-        # Adding to the portfolio behaviour
-        port_behaviour = port_behaviour.add(market_behaviour, fill_value=0)
+
+        # Main Dictionary
+        portfolio_data = {}
+        # Starting portfolio behaviour variable
+        port_behaviour = pd.Series()
+        # Cicle to evaluate all the markets
+        for market in portfolio_by_market:
+            # Stocks investments in the market
+            stocks = portfolio_by_market[market]['stock'].unique().tolist()
+            # behaviour of all the stock in a sepecific market of the portfolio
+            market_behaviour = pd.Series()
+            # Dicitonary for the specific market
+            portfolio_data[market] = {'longName':yf.Ticker(market).info['longName']}
+            # Stocks close prices
+            stocks_close_prices = extractingData(stocks=stocks + [market], startDate=oldest_date[market], closePrices=True)
+            stocks_close_prices.index = pd.Series(stocks_close_prices.index).dt.strftime('%Y-%m-%d')
+            # Stocks Return Rates
+            stocks_daily_r_rates = dailyReturnRates(stocks_close_prices)
+            
+            if market == '^MXX':
+                stocks_close_prices = stocks_close_prices/exchangeRate
+                stocks_daily_r_rates = stocks_daily_r_rates
+            # Cicle to evaluate the stocks of each market
+            for stock in portfolio_by_market[market]['stock'].unique():
+                # Purchase record of the stock
+                stock_info = portfolio_by_market[market][portfolio_by_market[market]['stock'] == stock]
+                # Stock close prices
+                stock_hist_data = stocks_close_prices[stock]
+                
+                # Making new dicionary were we will store the complete data of the stock (in df), and the returns of every inversion made of each stock
+                portfolio_data[market][stock] = {'longName':yf.Ticker(stock).info['longName'], 'shortName':yf.Ticker(stock).info['shortName'],'data':stock_hist_data.to_dict()}
+                # Cicle to evaluate returns of each record
+                stock_behaviour = pd.Series()
+                for date in stock_info.index:
+                    # Close Prices of the record
+                    close_prices = stock_hist_data[stock_hist_data.index >= date]
+                    # Record Info
+                    record_info = stock_info.loc[date, :]
+                    # Stock purchase price
+                    purchase_price = record_info['stock_price_usd']
+                    # Purchase Quantity
+                    total_bought = record_info['qty_bought_usd']
+                    # Purchase in stock units
+                    stock_units = record_info['n_stocks']
+                    # Record Behaviour
+                    record_behaviour = stock_units*close_prices
+                    # Adding the record to the stock behaviour
+                    stock_behaviour = stock_behaviour.add(record_behaviour, fill_value=0)
+                    # Adding the record behaviour to its section in the dictionary (conclusion of the record)
+                    portfolio_data[market][stock][date] = {'close_prices':close_prices.to_dict(), 'purchase_price':purchase_price, 'total_bought':int(total_bought), 'record_behaviour':record_behaviour.to_dict()}
+                # Stock behaviour            
+                portfolio_data[market][stock]['behaviour'] = stock_behaviour.to_dict()
+                # Adding the stock behaviour to the market behaviour
+                market_behaviour = market_behaviour.add(stock_behaviour, fill_value=0)
+            # Concluding the market behaviour
+            portfolio_data[market]['behaviour'] = market_behaviour.to_dict()
+            # Market Stocks Daily Return Rates
+            portfolio_data[market]['stocks_daily_return_rates'] = stocks_daily_r_rates.to_dict()
+            # Actual Portfolio Worth (In that specific market)
+            market_actual_worth = market_behaviour[market_behaviour.index.max()]
+            # Capital invested in the market
+            investment_in_market = initial_investment[market]
+            # Return Rate
+            market_return_rate = market_actual_worth/investment_in_market - 1
+            # Adding to the portfolio behaviour
+            port_behaviour = port_behaviour.add(market_behaviour, fill_value=0)
+            
+            # Adding all of this information to the dictionary
+            portfolio_data[market]['Other Results'] = {'actual_worth':market_actual_worth,'total_investment':int(investment_in_market), 'return_rate':market_return_rate}
+            portfolio_data[market]['close_prices'] = stocks_close_prices[market].to_dict()
+            portfolio_data['records_by_market'] = {i:portfolio_by_market[i].to_dict() for i in portfolio_by_market}
+            portfolio_data['stock_weights'] = {i:weights[i].to_dict() for i in weights}
+            portfolio_data['investment_by_market'] = {i:investment_by_stock[i].to_dict() for i in investment_by_stock}
+            
+        # Concluding portfolio historical behaviour    
+        portfolio_data['behaviour'] = port_behaviour.to_dict()
         
-        # Adding all of this information to the dictionary
-        portfolio_data[market]['Other Results'] = {'actual_worth':market_actual_worth,'total_investment':investment_in_market, 'return_rate':market_return_rate}
-        portfolio_data[market]['close_prices'] = stocks_close_prices[market].to_dict()
-        portfolio_data['records_by_market'] = {i:portfolio_by_market[i].to_dict() for i in portfolio_by_market}
-        portfolio_data['stock_weights'] = {i:weights[i].to_dict() for i in weights}
-        portfolio_data['investment_by_market'] = {i:investment_by_stock[i].to_dict() for i in investment_by_stock}
-        
-    # Concluding portfolio historical behaviour    
-    portfolio_data['behaviour'] = port_behaviour.to_dict()
+        return portfolio_data
     
+    today = dt.today().strftime('%Y-%m-%d')
+    
+    portfolio_data = read_json(filename)
+    
+    if portfolio_data == None:
+        print("No portfolio data file exists. Creating One...")
+        
+        portfolio_data = portfolioUpdate()
+        
+        create_or_overwrite_json(filename, {today:portfolio_data})
+        
+    else:
+        lastUpdate = [i for i in portfolio_data.keys()][0]
+        
+        if today == lastUpdate:
+            print("Portfolio data already updated today")
+        
+            portfolio_data = portfolio_data[lastUpdate]
+        else:
+            print("Portfolio data not updated today. Updating...")
+            
+            portfolio_data = portfolioUpdate()
+            
+            create_or_overwrite_json(filename, {today:portfolio_data})
+        
     return portfolio_data
 
 def portfolioWorthPlot(data, fill_color, border_color):
@@ -642,7 +672,7 @@ def portfolioWorthPlot(data, fill_color, border_color):
         customdata=np.stack([pd.concat([pd.Series([0]), data.pct_change().dropna()])], axis=1),
         hoverinfo=None,
         hoverlabel=dict(
-            bgcolor="rgba(230,230,230,.8)",  
+            bgcolor='rgb(243,244,244)',  
             font_size=16,               
             font_color="black",         
             bordercolor="#000",        
@@ -661,7 +691,7 @@ def portfolioWorthPlot(data, fill_color, border_color):
 
 
     figure = go.Figure(data=linePlot)
-    figure.update_layout(hovermode='x', template='simple_white', showlegend=False, margin=dict(l=40, r=0, t=15, b=30), paper_bgcolor='#fafafa', plot_bgcolor='#fafafa', yaxis=dict(range=[y.min(), y.max()]))
+    figure.update_layout(hovermode='x', template='none', showlegend=False, margin=dict(l=40, r=0, t=15, b=30), paper_bgcolor='rgba(255,255,255,0)', plot_bgcolor='rgba(255,255,255,0)', yaxis=dict(range=[y.min(), y.max()]))
     # Optionally, you can add vertical 'spike' lines on hover to make the nearest y-point clearer
     figure.update_xaxes(showspikes=True, spikecolor="black", spikemode="across", spikethickness=1, spikedash=tod[1], spikesnap='hovered data')
     figure.update_yaxes(showspikes=True, spikecolor="black", spikemode="across", spikethickness=1, spikedash=tod[1], spikesnap='hovered data')
@@ -700,6 +730,7 @@ def investmentPieChart(investments, palette):
 
     investmentPie = go.Figure(data=[go.Pie(labels=investments.iloc[:,0],
                                 values=investments['Investment'], hole=.35)])
+    
     investmentPie.update_traces(hoverinfo='label+value+percent', textinfo='percent', textfont_size=11,
                     marker=dict(line=dict(color='#000000', width=1), colors=[palette[i] for i in range(len(investments))]))
 
@@ -757,7 +788,7 @@ def returnsBarChart(tableIncomes, time):
         textposition='auto', textfont=dict(color='black'), marker=dict(line=dict(color=borderColors, width=1.5)))
     
 
-    plot = go.Figure([bar]).update_layout(margin=dict(l=0, r=0, t=0, b=0),template='simple_white', xaxis=dict(showticklabels=False), width=500, yaxis=dict(autorange='reversed'), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', shapes=[dict(type='line',x0=0, x1=0,y0=-0.5, y1=len(tableIncomes['returns']) - 0.5,line=dict(color='black', width=2))]).update_traces(hoverinfo='y+text')
+    plot = go.Figure([bar], layout=go.Layout(autosize=True)).update_layout(margin=dict(l=0, r=0, t=0, b=0),template='simple_white', xaxis=dict(showticklabels=False), width=500, yaxis=dict(autorange='reversed'), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', shapes=[dict(type='line',x0=0, x1=0,y0=-0.5, y1=len(tableIncomes['returns']) - 0.5,line=dict(color='black', width=2))]).update_traces(hoverinfo='y+text')
     
     return plot
 
@@ -1056,14 +1087,19 @@ def recomendationSystemNews(symbols):
     else:
 
         # Revisamos si hay algun stock nuevo para agregar al diccionario
-        pendingStocks = [i for i in stocksList if not sectoresDict[i]]
+        pendingStocks = []
+        for i in stocksList:
+            try:
+                sectoresDict[i]
+            except:
+                pendingStocks.append(i)
         
         if len(pendingStocks) > 0:
             print("Noticias de Stocks: Stocks nuevos de los cuales no había información, actualizando...")
             tickers = Ticker(pendingStocks)
             
             for symbol, data in tickers.asset_profile.items():
-                sectoresDict[symbol] = data
+                sectoresDict[symbol] = data['sector']
             
             create_or_overwrite_json(filename, sectoresDict)
         else:
@@ -1129,7 +1165,6 @@ def container_with_slider(portfolio_stocks=list, stock_returns=list, stock_retur
     format_return_rate = lambda returns: f"+{returns*100:,.2f}%" if returns > 0 else f"-{-returns*100:,.2f}%"
     prueba = lambda asset_type: 'Returns' if asset_type == 'stocks' else ('Price' if asset_type == 'markets' else 'Price' if asset_type=='mostActive' or asset_type=='dayGainers' else 'NaN')
     
-    
     for i, s_ret, s_ret_rate, behav in zip(portfolio_stocks, stock_returns, stock_return_rates, stock_behaviour):
         s_ret_formatted = format_returns(s_ret)
         s_ret_rate_form = format_return_rate(s_ret_rate)
@@ -1151,12 +1186,12 @@ def container_with_slider(portfolio_stocks=list, stock_returns=list, stock_retur
                             dbc.Col(dcc.Graph(figure=plot, config=config2, style={'width': '100%', 'height': '80px'}),width=6)
                         ])
                     ], style={'border':'none', 'padding':0, 'margin':0, 'background-color':'transparent'}, id={'type': 'stock-button', 'index': f'{i}-{asset_type}'}, n_clicks=0) 
-                ], href=f"https://finance.yahoo.com/quote/{i}/", target="_blank", style={'padding':'10px'})
+                ], href=f"https://finance.yahoo.com/quote/{i}/", target="_blank", style={'padding':'10px 15px'})
             ], style={'width':'20em', 'border-radius':'10px', 'border':'1px solid black', 'background':'white','flex':'0 0 auto', 'margin-right':'30px'}, class_name='my-auto plot-container')
 
                                     )
     
-    sliderReady = html.Div(children=stock_boxes, style={'background':'#fafafa', 'padding':'40px 0 40px 30px', 'border-radius':'12px', 'border':'1px solid black','display':'flex', 'overflow-x':'auto','white-space': 'nowrap'})
+    sliderReady = html.Div(children=stock_boxes, style={'background':'#fafafa', 'padding':'40px 30px 40px 40px', 'border-radius':'12px', 'border':'1px solid black','display':'flex', 'overflow-x':'auto','white-space': 'nowrap'})
     return sliderReady
 
 def tickersCalcs(closePrices):
@@ -1232,6 +1267,8 @@ def screeners():
             sectoresDict = sectoresDict[lastUpdate]
         else:
             print("Screeners: Falta actualizar contenido de al día de hoy")
+            screener = Screener()
+            
             sectoresDict = screener.get_screeners(['most_actives', 'day_gainers'])
             
             create_or_overwrite_json(Screenersfilename, {today:sectoresDict})
@@ -1261,3 +1298,10 @@ def screeners():
             create_or_overwrite_json(cpFilename, {today:closePrices.to_dict()})
     
     return sectoresDict, mostActiveSymbols, dayGainerSymbols, symbols, closePrices
+
+def dropdownMaker(id, placeholder, options, value, width):
+    bgImage = '''url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"%3E%3Cpath fill="rgb(100,100,100)" d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"%3E%3C/path%3E%3C/svg%3E')'''
+    bgPosition = 'right 8px center'
+    dropdown = dbc.Select(id=id, class_name='mac-select', placeholder=placeholder, options=options, value=value, style={'border-radius':'8px', 'font-size':'16px', 'color':'rgb(100,100,100)', 'cursor':'pointer', 'padding':'5px 8px', 'background-image':bgImage, 'background-repeat':'no-repeat', 'background-size': '10px', 'background-position':bgPosition, 'width':width, 'outline': 'none', 'box-shadow':'none', 'border':'none', 'background-color':'transparent'})
+
+    return dropdown

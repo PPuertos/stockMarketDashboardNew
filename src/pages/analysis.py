@@ -59,7 +59,7 @@ tableViewMostActive = om.generalTableFormat(popularStocksDf['most_actives'], ['s
 tableViewDayGainers = om.generalTableFormat(popularStocksDf['day_gainers'], ['str', 'str', 'percentage', 'float', 'int', 'int', 'percentage'])
 
 # ROW WITH GRID AND HEATMAP
-testRow = dbc.Container([
+heatmapAndGridRow = dbc.Container([
         dbc.Row([
         dbc.Col("Heatmap View", className='small-text text-center fw-bolder px-0 order-1 order-md-1', width=12, md=6),
         dbc.Col("Table View", className='small-text text-center fw-bolder px-0 order-3 order-md-2', width=12, md=6),
@@ -70,7 +70,7 @@ testRow = dbc.Container([
             ], width=12, md=6, style={'height':'100%'}, class_name='px-0 pe-md-2 mb-4 mb-md-0 order-2 order-md-3'),
         dbc.Col([
             html.Div([
-                html.Div(id="table-view-analysis", style={'height':'100%', 'border-radius':'10px'})
+                html.Div(id="table-view-analysis", style={'height':'100%', 'min-height':'450px', 'border-radius':'10px'})
                 ], style={'background-color':'#fafafa', 'height':'100%', 'border-radius':'16px', 'border':'1px solid black', 'padding':'15px'}, className='height-450')
             ], width=12, md=6, class_name='px-0 ps-md-2 order-4 order-md-4')
         ])
@@ -78,12 +78,19 @@ testRow = dbc.Container([
 
 
 timelapseValues = {'1 Week':7, '2 Weeks':14, '1 Month':30, '2 Months': 60, '3 Months':90, '4 Months':120, '6 Months':30*6, '1 Year':30*12}
+timelapseValuesItems = [{'label':i, 'value':j} for i, j in zip(timelapseValues.keys(), timelapseValues.values())]
+
+timelapseDropdown = dbc.Select(id='select-timelapse-analysis', placeholder='Select Timelapse', options=timelapseValuesItems, value=30, style={'width':'150px','border-radius':'20px', 'font-size':'15px', 'font-width':'100'})
+timelapseDropdown = om.dropdownMaker('select-timelapse-analysis', 'Select Timelapse', timelapseValuesItems, 30, '98px')
+
+screenerItems = [{'label':'Most Active', 'value':'Most Active'},{'label':'Day Gainers', 'value':'Day Gainers'}]
+screenerDropdown = om.dropdownMaker('select-view-analysis', 'Select Screener', screenerItems, 'Most Active', '118px')
 
 popularStocksTreeMapsRow = dbc.Row([
     html.Div(id='trending-tickers-title-analysis', className='h2', style={'margin-bottom':'20px'}),
-    html.Div(dcc.Dropdown(['Most Active','Day Gainers'], id='select-view-analysis', placeholder='Select View', clearable=False, searchable=False, value='Most Active', style={'width':'150px','border-radius':'20px', 'font-size':'15px', 'font-width':'100'}), style={'margin-bottom':'5px'}, className='justify-content-end d-flex'),
-    testRow,
-    html.Div([html.Span(id='timelapse-subtitle-analysis', className='text-small fw-bolder'),dcc.Dropdown([i for i in timelapseValues], id='select-timelapse-analysis', placeholder='Select View', clearable=False, searchable=False, value='1 Month', style={'width':'150px','border-radius':'20px', 'font-size':'15px'})], style={'margin-bottom':'5px'}, className='justify-content-between align-items-end d-flex'),
+    html.Div(screenerDropdown, style={'margin-bottom':'5px'}, className='justify-content-end d-flex'),
+    heatmapAndGridRow,
+    html.Div([html.Span(id='timelapse-subtitle-analysis', className='text-small fw-bolder'), timelapseDropdown], style={'margin-bottom':'5px'}, className='justify-content-between align-items-end d-flex'),
     dbc.Col(id="stock_boxes_analysis", width=12, class_name='px-0')
 ], style={'margin-bottom':'50px'})  
 
@@ -151,8 +158,8 @@ def analysisStockPage(nClicks):
      Output('timelapse-subtitle-analysis', 'children')],
     [Input('select-view-analysis', 'value'), Input('select-timelapse-analysis', 'value')]
 )
-def update_output(viewType, timeLapse):
-    timeframe = timelapseValues[timeLapse]
+def update_output(viewType, timeframe):
+    timeframe = int(timeframe)
     
     if viewType == 'Most Active':
         treemapView = dcc.Graph(figure=popularStocksTreeMap['most_actives'],config=config1, style={'width': '100%', 'overflow':'visible'})
